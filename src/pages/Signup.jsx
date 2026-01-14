@@ -1,9 +1,11 @@
 import Logo from "../../public/logo.png"
 import { Link } from "react-router"
-import { MdOutlineVisibility} from "react-icons/md"
+import { MdOutlineVisibility, MdOutlineVisibilityOff} from "react-icons/md"
 import signupBg from "../assets/usm3.jpg"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 function Signup() {
+  const [visible,setVisible] = useState(false)
+
   useEffect(() => {
     const prev = {
       backgroundImage: document.body.style.backgroundImage,
@@ -85,7 +87,7 @@ function Signup() {
 
 
           <input
-            type="password"
+            type={visible ? "text" : "password"}
             required
             id="password"
             placeholder="Contraseña"
@@ -93,7 +95,36 @@ function Signup() {
             pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
             title="Deben ser más de 8 caractéres, incluyendo un número, una mayúscula y una minúscula"
           />
-          <MdOutlineVisibility size="1.5em"/>
+            <button
+            type="button"
+            className="cursor-pointer btn btn-circle w-8 h-8 p-1 relative overflow-hidden active:!scale-100 active:!translate-y-0"
+            onMouseDown={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+            }}
+            onClick={() => setVisible(!visible)}
+            aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
+          >
+            <span
+              className={[
+                "absolute inset-0 flex items-center justify-center",
+                "transition-all duration-200 ease-out",
+                visible ? "opacity-100 scale-100 rotate-0" : "opacity-0 scale-75 -rotate-90",
+              ].join(" ")}
+            >
+              <MdOutlineVisibilityOff size="1.5em" />
+            </span>
+
+            <span
+              className={[
+                "absolute inset-0 flex items-center justify-center",
+                "transition-all duration-200 ease-out",
+                visible ? "opacity-0 scale-75 rotate-90" : "opacity-100 scale-100 rotate-0",
+              ].join(" ")}
+            >
+              <MdOutlineVisibility size="1.5em" />
+            </span>
+          </button>
 
         </label>
             <p className="validator-hint hidden">
@@ -105,7 +136,7 @@ function Signup() {
 
 
           <input
-            type="password"
+            type={visible ? "text" : "password"}
             required
             id="password"
             placeholder="Verifique su contraseña"
@@ -113,11 +144,39 @@ function Signup() {
             pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
             title="Deben ser más de 8 caractéres, incluyendo un número, una mayúscula y una minúscula"
           />
-          <MdOutlineVisibility size="1.5em"/>
+            <button
+            type="button"
+            className="cursor-pointer btn btn-circle w-8 h-8 p-1 relative overflow-hidden active:!scale-100 active:!translate-y-0"
+            onMouseDown={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+            }}
+            onClick={() => setVisible(!visible)}
+            aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
+            >
+              <span
+                className={[
+                  "absolute inset-0 flex items-center justify-center",
+                  "transition-all duration-200 ease-out",
+                  visible ? "opacity-100 scale-100 rotate-0" : "opacity-0 scale-75 -rotate-90",
+                ].join(" ")}
+              >
+                <MdOutlineVisibilityOff size="1.5em" />
+              </span>
+
+              <span
+                className={[
+                  "absolute inset-0 flex items-center justify-center",
+                  "transition-all duration-200 ease-out",
+                  visible ? "opacity-0 scale-75 rotate-90" : "opacity-100 scale-100 rotate-0",
+                ].join(" ")}
+              >
+                <MdOutlineVisibility size="1.5em" />
+              </span>
+            </button>
         </label>
             <p className="validator-hint hidden">
-              La contraseña deben ser más de 8 caractéres, incluyendo:
-              <br />Al menos un número <br />Al menos una mayúscula <br />Al menos una minúscula
+              La contraseña debe coincidir
             </p>
         <button className="btn bg-blue-900 text-white rounded-2xl w-full my-3">Crear Cuenta</button>
         <div className="xs:mdflex-col md:flex">
