@@ -1,0 +1,24 @@
+@import "tailwindcss";
+@plugin "daisyui"{
+  themes: light --default;
+}
+
+html{
+  background-color: whitesmoke;
+  width: 100vw;
+  max-width: 100vw;
+  max-height: 100vh;
+  overflow-x: hidden;
+}
+body {
+  margin: 0;
+  padding: 0;
+  /* Esto ayuda a forzar el límite */
+  max-width: 100vw;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
