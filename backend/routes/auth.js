@@ -22,7 +22,7 @@ function publicUser(userRow) {
 }
 
 // POST /api/auth/signup
-// Body: { cedula, nombre, apellido, correo_electronico, password, telefono?, semestre?, id_rol? }
+// Body: { cedula, nombre, apellido, correo_electronico, password, telefono?, semestre? }
 router.post('/signup', async (req, res) => {
   try {
     const {
@@ -33,7 +33,6 @@ router.post('/signup', async (req, res) => {
       password,
       telefono,
       semestre,
-      id_rol,
     } = req.body ?? {};
 
     if (!cedula || !nombre || !apellido || !correo_electronico || !password) {
@@ -48,11 +47,9 @@ router.post('/signup', async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
+    // IMPORTANT: never allow clients to choose their own role at signup.
     // Default role to 1 (typically estudiante). Adjust if your DB uses a different id.
-    const roleId = id_rol === undefined || id_rol === null ? 1 : Number.parseInt(String(id_rol), 10);
-    if (!Number.isFinite(roleId)) {
-      return res.status(400).json({ error: 'id_rol must be a number' });
-    }
+    const roleId = 1;
 
     let semestreValue = undefined;
     if (semestre !== undefined && semestre !== null && semestre !== '') {
@@ -67,7 +64,7 @@ router.post('/signup', async (req, res) => {
         cedula: String(cedula),
         nombre: String(nombre),
         apellido: String(apellido),
-        correo_electronico: String(correo_electronico),
+        correo_electronico: String(correo_electronico).trim().toLowerCase(),
         contrasena_hash: passwordHash,
         telefono: telefono ? String(telefono) : null,
         id_rol: roleId,
@@ -113,14 +110,18 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Missing credentials' });
     }
 
-    const { data: user, error } = await supabase
-      .from('usuario')
-      .select('*')
-      .or(`cedula.eq.${identifier},correo_electronico.eq.${identifier}`)
-      .maybeSingle();
+    const identifierStr = String(identifier).trim();
+    const looksLikeEmail = identifierStr.includes('@');
+
+    const query = supabase.from('usuario').select('*');
+    const { data: user, error } = looksLikeEmail
+      ? await query.eq('correo_electronico', identifierStr.toLowerCase()).maybeSingle()
+      : await query.eq('cedula', identifierStr).maybeSingle();
 
     if (error) throw error;
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+
+    if (!user.contrasena_hash) return res.status(401).json({ error: 'Invalid credentials' });
 
     const ok = await bcrypt.compare(String(password), String(user.contrasena_hash));
     if (!ok) return res.status(401).json({ error: 'Invalid credentials' });

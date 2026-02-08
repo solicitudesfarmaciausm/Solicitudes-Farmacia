@@ -1,9 +1,15 @@
-
+import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import usersRouter from './routes/usuarios.js';
 import solicitudesRouter from './routes/solicitudes.js';
 import authRouter from './routes/auth.js';
+
+// Load env vars regardless of where node is executed from.
+// 1) repo root: servicio-comunitario/.env
+// 2) backend folder: servicio-comunitario/backend/.env
+dotenv.config({ path: new URL('../.env', import.meta.url) });
+dotenv.config({ path: new URL('./.env', import.meta.url) });
 
 const app = express();
 const PORT = process.env.PORT || 3000;

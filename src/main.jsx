@@ -10,14 +10,18 @@ import Perfil from './pages/Perfil.jsx'
 import Solicitud from './pages/Solicitud.jsx'
 import SolicitudAdmin from './components/Solicitudes/Admin/SolicitudAdmin.jsx'
 import SolicitudAlumno from './components/Solicitudes/Alumno/SolicitudAlumno.jsx'
+import RequireAuth from './auth/RequireAuth.jsx'
+import RedirectIfAuth from './auth/RedirectIfAuth.jsx'
+import RootRedirect from './auth/RootRedirect.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login/>}/>
-        <Route path="/signup" element={<Signup/>}/>
-        <Route element={<AppLayout/>}>
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="/login" element={<RedirectIfAuth><Login/></RedirectIfAuth>}/>
+        <Route path="/signup" element={<RedirectIfAuth><Signup/></RedirectIfAuth>}/>
+        <Route element={<RequireAuth><AppLayout/></RequireAuth>}>
           <Route path="/solicitudes" element={<Solicitudes/>}/>
           <Route path="/perfil" element={<Perfil/>}/>
           <Route path="/solicitud/:id" element={<Solicitud/>}/>

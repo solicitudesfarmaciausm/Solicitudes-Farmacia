@@ -8,6 +8,7 @@ const Solicitudes = ()=>{
     const [isAdmin, setIsAdmin] = useState(false);
     return(
         <>
+            
             {isAdmin ? <PanelSolicitudesAdmin/> : <PanelSolicitudesAlumno/>}
         </>
 

@@ -1,13 +1,20 @@
 import Logo from "../../public/logo.png"
 
 import { MdOutlineVisibility, MdOutlineVisibilityOff } from "react-icons/md"
-import { Link } from "react-router"
+import { Link, useNavigate } from "react-router"
 import signupBg from "../assets/usm3.jpg"
 import { useEffect, useState } from "react"
+import { login } from "../api/auth.js"
+import { setSession } from "../auth/session.js"
 
 function Login() {
 
   const [visible, setVisible] = useState(false)
+  const navigate = useNavigate()
+  const [identifier, setIdentifier] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     const prev = {
@@ -36,32 +43,50 @@ function Login() {
     }
   }, [])  
 
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (loading) return
+
+    setError("")
+    setLoading(true)
+    try {
+      const data = await login({ cedulaOrEmail: identifier.trim(), password })
+      setSession({ token: data?.token, user: data?.user })
+      navigate("/solicitudes")
+    } catch (err) {
+      setError(err?.message || "No se pudo iniciar sesión")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="flex justify-center h-screen items-center">
-      <div className="card shadow-xl max-w-[90vw] w-[90vw] h-min py-3 px-4 md:px-7 md:w-100 text-center flex justify-center items-center gap-3 border border-white/30 bg-white/90 backdrop-blur">
+      <form
+        onSubmit={handleSubmit}
+        className="card shadow-xl max-w-[90vw] w-[90vw] h-min py-3 px-4 md:px-7 md:w-100 text-center flex justify-center items-center gap-3 border border-white/30 bg-white/90 backdrop-blur"
+      >
         <div className="card w-25 h-25 border-gray-100 border">
           <img src={Logo} alt="Logo" />
         </div>
 
         <h2 className="font-bold w-full text-center my-4 text-2xl">Bienvenido</h2>
 
-        <label htmlFor="cedula" className="self-start ml-2">
-          Cédula
+        <label htmlFor="identifier" className="self-start ml-2">
+          Cédula o correo
         </label>
         <label className="input validator rounded-2xl w-full">
           <input
             type="text"
-            id="cedula"
-            placeholder="Cédula"
-            inputMode="numeric"
+            id="identifier"
+            placeholder="Cédula o correo"
             autoComplete="username"
-            pattern="\d{8}"
             required
-            minLength={8}
-            maxLength={9}
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
           />
         </label>
-        <p className="validator-hint hidden">Debes ingresar una cédula valida</p>
+        <p className="validator-hint hidden">Debes ingresar una cédula o correo válido</p>
 
         <label htmlFor="password" className="self-start ml-2">
           Contraseña
@@ -73,11 +98,13 @@ function Login() {
             id="password"
             placeholder="Contraseña"
             autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
           />
 
           <button
             type="button"
-            className="cursor-pointer btn btn-circle w-8 h-8 p-1 relative overflow-hidden active:!scale-100 active:!translate-y-0"
+            className="cursor-pointer btn btn-circle w-8 h-8 p-1 relative overflow-hidden active:scale-100! active:translate-y-0!"
             onMouseDown={(e) => {
               e.preventDefault()
               e.stopPropagation()
@@ -107,11 +134,17 @@ function Login() {
           </button>
         </label>
 
-        {/* Mensaje genérico (sin reglas) */}
+        {error ? (
+          <p className="text-sm text-error w-full text-left">{error}</p>
+        ) : null}
 
-        <Link className="btn bg-blue-900 text-white rounded-2xl w-full my-3" to="/solicitudes">
-          Iniciar Sesión
-        </Link>
+        <button
+          className="btn bg-blue-900 text-white rounded-2xl w-full my-3"
+          type="submit"
+          disabled={loading}
+        >
+          {loading ? "Iniciando..." : "Iniciar Sesión"}
+        </button>
 
         <div className="xs:mdflex-col md:flex">
           <p>¿No tienes una cuenta?</p>
@@ -119,7 +152,7 @@ function Login() {
             Regístrate
           </Link>
         </div>
-      </div>
+      </form>
     </div>
   )
 }
