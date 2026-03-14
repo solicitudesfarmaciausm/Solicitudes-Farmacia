@@ -88,7 +88,7 @@ function Login() {
               type="text"
               id="identifier"
               placeholder="Ej. 12345678 o correo@ejemplo.com"
-              className="w-full py-10 bg-transparent outline-none text-gray-800 placeholder-gray-400"
+              className="w-full py-10 bg-transparent outline-none text-gray-800 placeholder-gray-400 overflow-hidden"
               autoComplete="username"
               required
               value={identifier}
