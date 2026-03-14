@@ -203,6 +203,18 @@ router.post('/', requireAuth, async (req, res) => {
       fecha_evento: nowIso,
     });
 
+    // Notify admins (roles 2 and 3)
+    const { data: admins } = await supabase.from('usuario').select('id_usuario').in('id_rol', [2, 3]);
+    if (admins && admins.length > 0) {
+      const notificaciones = admins.map(admin => ({
+        id_usuario: admin.id_usuario,
+        titulo: 'Nueva solicitud',
+        mensaje: `Se ha creado una nueva solicitud: '${solicitud.titulo}'`,
+        enlace: `/solicitud-admin/${solicitud.id_solicitud}`
+      }));
+      await supabase.from('notificacion').insert(notificaciones);
+    }
+
     return res.status(201).json(solicitud);
   } catch (err) {
     console.error('POST /api/solicitudes error:', err);
@@ -314,6 +326,31 @@ router.post('/:id_solicitud/comentarios', requireAuth, async (req, res) => {
       descripcion: 'Agregó un comentario',
       fecha_evento: new Date().toISOString(),
     });
+
+    // Notify the other party
+    const { data: sol } = await supabase.from('solicitud').select('id_estudiante, id_personal_asignado').eq('id_solicitud', idSolicitud).single();
+    if (sol) {
+      const targetUserId = userId === sol.id_estudiante ? sol.id_personal_asignado : sol.id_estudiante;
+      if (targetUserId) {
+        let enlace = '/solicitud/';
+        // The frontend distinguishes routes based on role or type. Let's redirect correctly:
+        // Actually, we can just send "solicitud-admin/:id" or "solicitud/:id" based on role? Or just standard link relative to what user sees.
+        // Wait, the client determines if it goes to /solicitud (alumno) or /solicitud-admin (admin).
+        // Let's use simple frontend routes.
+        if (targetUserId === sol.id_estudiante) {
+          enlace = `/solicitud/${idSolicitud}`;
+        } else {
+          enlace = `/solicitud-admin/${idSolicitud}`;
+        }
+
+        await supabase.from('notificacion').insert({
+          id_usuario: targetUserId,
+          titulo: 'Nuevo comentario',
+          mensaje: userId === sol.id_estudiante ? 'El estudiante ha respondido a la solicitud.' : 'Un administrador ha comentado tu solicitud.',
+          enlace: enlace,
+        });
+      }
+    }
 
     return res.status(201).json(data);
   } catch (err) {
@@ -666,6 +703,25 @@ router.patch('/:id_solicitud', requireAuth, async (req, res) => {
         descripcion: `Actualizó: ${detailedChanges.join(', ')}`,
         fecha_evento: updates.fecha_actualizacion,
       });
+
+      // Notification logic
+      if (changes.includes('estado')) {
+        await supabase.from('notificacion').insert({
+          id_usuario: data.id_estudiante,
+          titulo: 'Actualización de estado',
+          mensaje: `Tu solicitud '${data.titulo}' ahora está en estado '${data.estado?.nombre || data.id_estado_solicitud}'.`,
+          enlace: `/solicitud/${idSolicitud}`
+        });
+      }
+      
+      if (changes.includes('asignación') && data.id_personal_asignado && req.user.id_usuario !== data.id_personal_asignado) {
+        await supabase.from('notificacion').insert({
+          id_usuario: data.id_personal_asignado,
+          titulo: 'Nueva asignación',
+          mensaje: `Se te ha asignado la solicitud '${data.titulo}'.`,
+          enlace: `/solicitud-admin/${idSolicitud}`
+        });
+      }
     }
 
     return res.status(200).json(data);

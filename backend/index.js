@@ -4,6 +4,7 @@ import cors from 'cors';
 import usersRouter from './routes/usuarios.js';
 import solicitudesRouter from './routes/solicitudes.js';
 import authRouter from './routes/auth.js';
+import notificacionesRouter from './routes/notificaciones.js';
 
 // Load env vars regardless of where node is executed from.
 // 1) repo root: servicio-comunitario/.env
@@ -28,6 +29,7 @@ app.get('/', (req, res) => {
 app.use('/api/usuarios', usersRouter);
 app.use('/api/solicitudes', solicitudesRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/notificaciones', notificacionesRouter);
 
 // Start Server
 app.listen(PORT, () => {
