@@ -28,6 +28,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/solicitud/:id" element={<Solicitud/>}/>
           <Route path="/solicitud-admin/:id" element={<SolicitudAdmin/>}/>
           <Route path='/solicitud-alumno/:id' element={<SolicitudAlumno/>}/>
+          <Route path='/crear-admin' element={<CrearAdmin/>}/>
         </Route>
       </Routes>
     
