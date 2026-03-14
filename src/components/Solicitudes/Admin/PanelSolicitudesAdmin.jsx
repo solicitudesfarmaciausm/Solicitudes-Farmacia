@@ -5,10 +5,6 @@ import SolicitudAdminTabla from "./SolicitudAdminTabla"
 
 import { listSolicitudes } from '../../../api/solicitudes.js'
 
-// TEST ONLY: multiply the displayed list size without needing many DB rows.
-// Set to 1 to disable.
-const TEST_REPEAT = 10
-
 const PAGE_SIZE = 25
 
 const formatFecha = (iso) => {
@@ -32,29 +28,13 @@ const toAdminRow = (s, keySuffix = '') => {
         id: s.id_solicitud,
         titulo: s.titulo,
         fecha: formatFecha(s.fecha_creacion),
+        fechaIso: s.fecha_creacion,
         estado: s.estado?.nombre ?? String(s.id_estado_solicitud ?? ''),
         tipo: s.tipo?.nombre ?? String(s.id_tipo_solicitud ?? ''),
         estudiante,
         cedula,
         asignadoA,
     }
-}
-
-const repeatRows = (rows, times, keySeed = '') => {
-    const t = Number(times)
-    if (!Number.isFinite(t) || t <= 1) return rows
-
-    const out = []
-    for (let i = 0; i < t; i++) {
-        for (let j = 0; j < rows.length; j++) {
-            const r = rows[j]
-            out.push({
-                ...r,
-                rowKey: `${r.id}-${keySeed}-${i}-${j}`,
-            })
-        }
-    }
-    return out
 }
 
 const PanelSolicitudesAdmin = () => {
@@ -72,6 +52,19 @@ const PanelSolicitudesAdmin = () => {
     const [estado, setEstado] = useState('')
     const [tipo, setTipo] = useState('')
     const [asignadoA, setAsignadoA] = useState('')
+    const [fechaInicio, setFechaInicio] = useState('')
+    const [fechaFin, setFechaFin] = useState('')
+
+    const hayFiltrosActivos = q !== '' || estado !== '' || tipo !== '' || asignadoA !== '' || fechaInicio !== '' || fechaFin !== ''
+
+    const limpiarFiltros = () => {
+        setQ('')
+        setEstado('')
+        setTipo('')
+        setAsignadoA('')
+        setFechaInicio('')
+        setFechaFin('')
+    }
 
     const handleDownloadReport = () => {
         if (!solicitudesFiltradas.length) {
@@ -130,9 +123,8 @@ const PanelSolicitudesAdmin = () => {
                 if (cancelled) return
 
                 const rows = (data ?? []).map((s, idx) => toAdminRow(s, `-${nextOffset}-${idx}`))
-                const repeated = repeatRows(rows, TEST_REPEAT, String(nextOffset))
 
-                setSolicitudes((prev) => (isInitial ? repeated : [...prev, ...repeated]))
+                setSolicitudes((prev) => (isInitial ? rows : [...prev, ...rows]))
                 setOffset(nextOffset + PAGE_SIZE)
                 setHasMore((data ?? []).length === PAGE_SIZE)
             } catch (e) {
@@ -162,8 +154,7 @@ const PanelSolicitudesAdmin = () => {
                     listSolicitudes({ view: 'full', limit: PAGE_SIZE, offset })
                         .then((data) => {
                             const rows = (data ?? []).map((s, idx) => toAdminRow(s, `-${offset}-${idx}`))
-                            const repeated = repeatRows(rows, TEST_REPEAT, String(offset))
-                            setSolicitudes((prev) => [...prev, ...repeated])
+                            setSolicitudes((prev) => [...prev, ...rows])
                             setOffset(offset + PAGE_SIZE)
                             setHasMore((data ?? []).length === PAGE_SIZE)
                         })
@@ -189,15 +180,32 @@ const PanelSolicitudesAdmin = () => {
     }, [solicitudes])
 
     const asignadosDisponibles = useMemo(() => {
-        return Array.from(new Set(solicitudes.map(s => s.asignadoA).filter(Boolean)))
+        const opciones = Array.from(new Set(solicitudes.map(s => s.asignadoA).filter(Boolean)))
+        return opciones.sort((a, b) => {
+            if (a === 'Sin asignar') return -1;
+            if (b === 'Sin asignar') return 1;
+            return a.localeCompare(b);
+        });
     }, [solicitudes])
 
     const solicitudesFiltradas = useMemo(() => {
         const query = q.trim().toLowerCase()
+        const fInicio = fechaInicio ? new Date(fechaInicio + 'T00:00:00') : null
+        const fFin = fechaFin ? new Date(fechaFin + 'T23:59:59.999') : null
+
         return solicitudes.filter((s) => {
             if (estado && s.estado !== estado) return false
             if (tipo && s.tipo !== tipo) return false
             if (asignadoA && s.asignadoA !== asignadoA) return false
+
+            if (fInicio || fFin) {
+                const sDate = s.fechaIso ? new Date(s.fechaIso) : null
+                if (!sDate || Number.isNaN(sDate.getTime())) return false
+
+                if (fInicio && sDate < fInicio) return false
+                if (fFin && sDate > fFin) return false
+            }
+
             if (!query) return true
 
             return (
@@ -207,7 +215,7 @@ const PanelSolicitudesAdmin = () => {
                 String(s.id ?? '').includes(query)
             )
         })
-    }, [solicitudes, q, estado, tipo, asignadoA])
+    }, [solicitudes, q, estado, tipo, asignadoA, fechaInicio, fechaFin])
 
     return (
         <>
@@ -236,7 +244,9 @@ const PanelSolicitudesAdmin = () => {
                 />
             </label>
 
-            <div className="w-[90%] flex flex-col sm:flex-row sm:flex-wrap my-2 gap-2 justify-center">
+            <div className="w-[90%] flex flex-col sm:flex-row sm:flex-wrap my-2 gap-2 justify-center sm:items-center">
+                
+
                 <select
                     className="select rounded-2xl w-full sm:w-auto cursor-pointer"
                     value={estado}
@@ -269,6 +279,34 @@ const PanelSolicitudesAdmin = () => {
                         <option key={a} value={a}>{a}</option>
                     ))}
                 </select>
+
+<div className="flex flex-col sm:flex-row gap-2 items-center bg-gray-50 p-2 rounded-2xl border border-gray-200">
+                    <span className="text-sm text-gray-500 font-medium px-2">Desde:</span>
+                    <input
+                        type="date"
+                        className="input rounded-xl w-full sm:w-auto h-10 min-h-[2.5rem]"
+                        value={fechaInicio}
+                        onChange={(e) => setFechaInicio(e.target.value)}
+                    />
+                    <span className="text-sm text-gray-500 font-medium px-2 hidden sm:inline">-</span>
+                    <span className="text-sm text-gray-500 font-medium px-2 sm:hidden">Hasta:</span>
+                    <input
+                        type="date"
+                        className="input rounded-xl w-full sm:w-auto h-10 min-h-[2.5rem]"
+                        value={fechaFin}
+                        onChange={(e) => setFechaFin(e.target.value)}
+                    />
+                </div>
+
+                {hayFiltrosActivos && (
+                    <button 
+                        className="btn btn-ghost rounded-2xl text-red-500 hover:text-red-700 hover:bg-red-50 w-full sm:w-auto"
+                        onClick={limpiarFiltros}
+                    >
+                        Limpiar filtros
+                    </button>
+                )}
+
             </div>
 
             {loading && (

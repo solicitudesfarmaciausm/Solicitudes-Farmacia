@@ -97,6 +97,63 @@ router.post('/signup', async (req, res) => {
   }
 });
 
+// POST /api/auth/signup-admin
+// Body: { cedula, nombre, apellido, correo_electronico, password, telefono? }
+// Requires Coordinador role (id_rol = 3)
+router.post('/signup-admin', requireAuth, async (req, res) => {
+  try {
+    if (req.user?.id_rol !== 3) {
+      return res.status(403).json({ error: 'Acceso denegado. Solo coordinadores pueden crear administradores.' });
+    }
+
+    const {
+      cedula,
+      nombre,
+      apellido,
+      correo_electronico,
+      password,
+      telefono,
+    } = req.body ?? {};
+
+    if (!cedula || !nombre || !apellido || !correo_electronico || !password) {
+      return res.status(400).json({
+        error: 'Faltan campos requeridos: cedula, nombre, apellido, correo_electronico, password',
+      });
+    }
+
+    if (typeof password !== 'string' || password.length < 8) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const roleId = 2; // Administrador
+
+    const { data, error } = await supabase
+      .from('usuario')
+      .insert({
+        cedula: String(cedula),
+        nombre: String(nombre),
+        apellido: String(apellido),
+        correo_electronico: String(correo_electronico).trim().toLowerCase(),
+        contrasena_hash: passwordHash,
+        telefono: telefono ? String(telefono) : null,
+        id_rol: roleId,
+        semestre: null,
+      })
+      .select('id_usuario, cedula, nombre, apellido, correo_electronico, telefono, id_rol')
+      .maybeSingle();
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    return res.status(201).json(publicUser(data));
+  } catch (err) {
+    console.error('POST /api/auth/signup-admin error:', err);
+    return res.status(err?.status ?? 500).json({ error: err?.message ?? 'Error al registrar administrador' });
+  }
+});
+
 // POST /api/auth/login
 // Body: { cedulaOrEmail, password } OR { cedula, password } OR { correo_electronico, password }
 router.post('/login', async (req, res) => {

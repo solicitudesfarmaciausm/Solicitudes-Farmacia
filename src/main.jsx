@@ -13,6 +13,7 @@ import SolicitudAlumno from './components/Solicitudes/Alumno/SolicitudAlumno.jsx
 import RequireAuth from './auth/RequireAuth.jsx'
 import RedirectIfAuth from './auth/RedirectIfAuth.jsx'
 import RootRedirect from './auth/RootRedirect.jsx'
+import CrearAdmin from './pages/CrearAdmin.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { MdOutlineVisibility, MdOutlineVisibilityOff } from "react-icons/md";
+import { MdOutlineVisibility, MdOutlineVisibilityOff, MdOutlineBadge, MdOutlinePerson, MdOutlineEmail, MdOutlinePhone, MdOutlineLock } from "react-icons/md";
 import { getUser, setSession } from "../auth/session.js";
 import { updateUser } from "../api/usuarios.js";
 import { changePassword } from "../api/auth.js";
@@ -141,35 +141,44 @@ const Perfil = () => {
             <h3 className="card-title text-xl mb-4 border-b pb-2">Datos Personales</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <div className="form-control">
-                  <label className="label"><span className="label-text font-semibold">Cédula</span></label>
-                  <input type="text" value={user.cedula} disabled className="input input-bordered w-full bg-gray-100 text-gray-500" />
+               <div className="w-full flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-gray-600 ml-1">Cédula</label>
+                  <label className="flex items-center bg-gray-100 border border-gray-200 rounded-xl px-4 py-2 w-full shadow-sm opacity-70 cursor-not-allowed">
+                    <MdOutlineBadge className="text-gray-500 mr-2 text-xl min-w-[20px]" />
+                    <input type="text" value={user.cedula} disabled className="w-full  bg-transparent outline-none text-gray-500 cursor-not-allowed" />
+                  </label>
                </div>
-               <div className="form-control">
-                  <label className="label"><span className="label-text font-semibold">Nombre y Apellido</span></label>
-                  <input type="text" value={`${user.nombre} ${user.apellido}`} disabled className="input input-bordered w-full bg-gray-100 text-gray-500" />
+               <div className="w-full flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-gray-600 ml-1">Nombre y Apellido</label>
+                  <label className="flex items-center bg-gray-100 border border-gray-200 rounded-xl px-4 py-2 w-full shadow-sm opacity-70 cursor-not-allowed">
+                    <MdOutlinePerson className="text-gray-500 mr-2 text-xl min-w-[20px]" />
+                    <input type="text" value={`${user.nombre} ${user.apellido}`} disabled className="w-full  bg-transparent outline-none text-gray-500 cursor-not-allowed" />
+                  </label>
                </div>
             </div>
 
             <form onSubmit={handleUpdateDatos} className="flex flex-col gap-4 mt-4 flex-grow">
-              <div className="form-control">
-                <label className="label" htmlFor="correo"><span className="label-text">Correo Electrónico</span></label>
-                <input 
-                  type="email" 
-                  id="correo"
-                  required 
-                  className="input input-bordered w-full rounded-2xl" 
-                  value={correo}
-                  onChange={(e) => setCorreo(e.target.value)}
-                />
+              <div className="w-full flex flex-col gap-1">
+                <label className="text-sm font-semibold text-gray-600 ml-1" htmlFor="correo">Correo Electrónico</label>
+                <label className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 w-full transition-all duration-300 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/20 shadow-sm">
+                  <MdOutlineEmail className="text-gray-400 mr-2 text-xl min-w-[20px]" />
+                  <input 
+                    type="email" 
+                    id="correo"
+                    required 
+                    className="w-full  bg-transparent outline-none text-gray-800 placeholder-gray-400" 
+                    value={correo}
+                    onChange={(e) => setCorreo(e.target.value)}
+                  />
+                </label>
               </div>
 
-              <div className="form-control">
-                <label className="label" htmlFor="telefono"><span className="label-text">Teléfono</span></label>
+              <div className="w-full flex flex-col gap-1">
+                <label className="text-sm font-semibold text-gray-600 ml-1" htmlFor="telefono">Teléfono</label>
                 <div className="flex w-full gap-2">
                   <select
                     id="telefonoPrefijo"
-                    className="select select-bordered rounded-2xl w-32"
+                    className="select bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none transition-all duration-300 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/20 shadow-sm w-32 cursor-pointer text-gray-700 font-normal"
                     value={telefonoPrefijo}
                     onChange={(e) => setTelefonoPrefijo(e.target.value)}
                   >
@@ -177,22 +186,25 @@ const Perfil = () => {
                       <option key={p} value={p}>{p}</option>
                     ))}
                   </select>
-                  <input
-                    type="tel"
-                    id="telefono"
-                    className="input input-bordered w-full rounded-2xl"
-                    placeholder="1234567"
-                    maxLength={7}
-                    pattern="\d{7}"
-                    value={telefonoNumero}
-                    onChange={(e) => setTelefonoNumero(e.target.value.replace(/\D/g, "").slice(0, 7))}
-                  />
+                  <label className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 w-full transition-all duration-300 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/20 shadow-sm">
+                    <MdOutlinePhone className="text-gray-400 mr-2 text-xl min-w-[20px]" />
+                    <input
+                      type="tel"
+                      id="telefono"
+                      className="w-full  bg-transparent outline-none text-gray-800 placeholder-gray-400"
+                      placeholder="1234567"
+                      maxLength={7}
+                      pattern="\d{7}"
+                      value={telefonoNumero}
+                      onChange={(e) => setTelefonoNumero(e.target.value.replace(/\D/g, "").slice(0, 7))}
+                    />
+                  </label>
                 </div>
               </div>
 
-              <div className="form-control mt-auto pt-4">
-                 <button type="submit" className={`btn bg-blue-900 text-white rounded-2xl hover:bg-blue-800 w-full ${loading ? 'loading' : ''}`} disabled={loading}>
-                    Actualizar Información
+              <div className="mt-auto pt-4">
+                 <button type="submit" className={`w-full bg-blue-900 text-white font-bold py-2.5 rounded-xl shadow-md hover:bg-blue-800 transition-all ${loading ? 'opacity-70 cursor-not-allowed' : ''}`} disabled={loading}>
+                    {loading ? "Actualizando..." : "Actualizar Información"}
                  </button>
               </div>
             </form>
@@ -200,61 +212,75 @@ const Perfil = () => {
         </div>
 
         {/* Card Seguridad */}
-        <div className="card bg-base-100 shadow-xl w-full border border-gray-100 flex flex-col">
+        <div className="card bg-base-100 shadow-xl w-full border border-gray-100 flex flex-col mb-15 md:mb-0">
            <div className="card-body flex flex-col h-full">
               <h3 className="card-title text-xl mb-4 border-b pb-2">Seguridad</h3>
               <form onSubmit={handleChangePassword} className="flex flex-col gap-4 flex-grow">
                  
-                 <div className="form-control">
-                    <label className="label" htmlFor="currentPassword"><span className="label-text">Contraseña Actual</span></label>
-                    <div className="relative">
+                 <div className="w-full flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-600 ml-1" htmlFor="currentPassword">Contraseña Actual</label>
+                    <label className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 w-full transition-all duration-300 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/20 shadow-sm">
+                        <MdOutlineLock className="text-gray-400 mr-2 text-xl min-w-[20px]" />
                         <input
                             type={showPassword ? "text" : "password"}
                             id="currentPassword"
                             required
-                            className="input input-bordered w-full rounded-2xl pr-10"
+                            placeholder="••••••••"
+                            className="w-full  bg-transparent outline-none text-gray-800 placeholder-gray-400"
                             value={currentPassword}
                             onChange={(e) => setCurrentPassword(e.target.value)}
                         />
-                        <button type="button" className="absolute right-3 top-3 text-gray-500" onClick={() => setShowPassword(!showPassword)}>
+                        <button type="button" className="text-gray-400 hover:text-blue-600 ml-2 transition-colors w-8 h-8 p-1 relative flex justify-center items-center active:scale-95" onClick={() => setShowPassword(!showPassword)}>
                             {showPassword ? <MdOutlineVisibilityOff size="1.2em"/> : <MdOutlineVisibility size="1.2em"/>}
                         </button>
-                    </div>
-                 </div>
-
-                 <div className="form-control">
-                    <label className="label" htmlFor="newPassword"><span className="label-text">Nueva Contraseña</span></label>
-                    <input
-                        type={showPassword ? "text" : "password"}
-                        id="newPassword"
-                        required
-                        minLength={8}
-                        className="input input-bordered w-full rounded-2xl"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
-                        title="Debe contener al menos 8 caracteres, una mayúscula, una minúscula y un número"
-                    />
-                    <label className="label">
-                        <span className="label-text-alt text-gray-500">Mín. 8 caracteres, 1 mayúscula, 1 minúscula, 1 número.</span>
                     </label>
                  </div>
 
-                 <div className="form-control">
-                    <label className="label" htmlFor="confirmPassword"><span className="label-text">Confirmar Nueva Contraseña</span></label>
-                    <input
-                        type={showPassword ? "text" : "password"}
-                        id="confirmPassword"
-                        required
-                        className="input input-bordered w-full rounded-2xl"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                    />
+                 <div className="w-full flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-600 ml-1" htmlFor="newPassword">Nueva Contraseña</label>
+                    <label className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 w-full transition-all duration-300 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/20 shadow-sm">
+                        <MdOutlineLock className="text-gray-400 mr-2 text-xl min-w-[20px]" />
+                        <input
+                            type={showPassword ? "text" : "password"}
+                            id="newPassword"
+                            required
+                            minLength={8}
+                            placeholder="••••••••"
+                            className="w-full  bg-transparent outline-none text-gray-800 placeholder-gray-400"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
+                            title="Debe contener al menos 8 caracteres, una mayúscula, una minúscula y un número"
+                        />
+                        <button type="button" className="text-gray-400 hover:text-blue-600 ml-2 transition-colors w-8 h-8 p-1 relative flex justify-center items-center active:scale-95" onClick={() => setShowPassword(!showPassword)}>
+                            {showPassword ? <MdOutlineVisibilityOff size="1.2em"/> : <MdOutlineVisibility size="1.2em"/>}
+                        </button>
+                    </label>
+                    <p className="text-xs text-gray-500 ml-1 mt-1">Mín. 8 caracteres, 1 mayúscula, 1 minúscula, 1 número.</p>
                  </div>
 
-                 <div className="form-control mt-auto pt-4">
-                    <button type="submit" className={`btn btn-warning rounded-2xl text-white w-full ${loading ? 'loading' : ''}`} disabled={loading}>
-                        Cambiar Contraseña
+                 <div className="w-full flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-600 ml-1" htmlFor="confirmPassword">Confirmar Nueva Contraseña</label>
+                    <label className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 w-full transition-all duration-300 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/20 shadow-sm">
+                        <MdOutlineLock className="text-gray-400 mr-2 text-xl min-w-[20px]" />
+                        <input
+                            type={showPassword ? "text" : "password"}
+                            id="confirmPassword"
+                            required
+                            placeholder="••••••••"
+                            className="w-full  bg-transparent outline-none text-gray-800 placeholder-gray-400"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                        />
+                        <button type="button" className="text-gray-400 hover:text-blue-600 ml-2 transition-colors w-8 h-8 p-1 relative flex justify-center items-center active:scale-95" onClick={() => setShowPassword(!showPassword)}>
+                            {showPassword ? <MdOutlineVisibilityOff size="1.2em"/> : <MdOutlineVisibility size="1.2em"/>}
+                        </button>
+                    </label>
+                 </div>
+
+                 <div className="mt-auto pt-4">
+                    <button type="submit" className={`w-full bg-yellow-500 text-white font-bold py-2.5 rounded-xl shadow-md hover:bg-yellow-600 transition-all ${loading ? 'opacity-70 cursor-not-allowed' : ''}`} disabled={loading}>
+                        {loading ? "Cambiando..." : "Cambiar Contraseña"}
                     </button>
                  </div>
               </form>

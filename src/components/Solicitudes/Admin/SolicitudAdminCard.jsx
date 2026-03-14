@@ -55,6 +55,8 @@ const SolicitudAdminCard = ({ solicitud, loading = false }) => {
         )
     }
 
+    if (!solicitud) return null;
+
     return(
         <div className="card bg-white shadow-md rounded-2xl p-4 cursor-pointer hover:shadow-lg transition-shadow" onClick={()=>navigate(`/solicitud-admin/${solicitud.id}`)}>
             <div className="flex justify-between">

@@ -635,7 +635,7 @@ router.patch('/:id_solicitud', requireAuth, async (req, res) => {
       .update(updates)
       .eq('id_solicitud', idSolicitud)
       .select(
-        SOLICITUD_SELECT_LITE
+        SOLICITUD_SELECT_FULL
       )
       .maybeSingle();
 
@@ -643,11 +643,27 @@ router.patch('/:id_solicitud', requireAuth, async (req, res) => {
     if (!data) return res.status(404).json({ error: 'Solicitud not found' });
 
     if (changes.length > 0) {
+      const detailedChanges = changes.map(ch => {
+        if (ch === 'estado') {
+          return `estado a '${data.estado?.nombre || data.id_estado_solicitud}'`;
+        }
+        if (ch === 'asignación') {
+          const fullName = data.personal_asignado 
+            ? [data.personal_asignado.nombre, data.personal_asignado.apellido].filter(Boolean).join(' ') 
+            : 'Sin asignar';
+          return `asignación a '${fullName}'`;
+        }
+        if (ch === 'tipo de solicitud') {
+          return `tipo de solicitud a '${data.tipo?.nombre || data.id_tipo_solicitud}'`;
+        }
+        return ch;
+      });
+
       await supabase.from('historial_solicitud').insert({
         id_solicitud: idSolicitud,
         id_usuario: req.user.id_usuario,
         accion: 'ACTUALIZAR',
-        descripcion: `Actualizó: ${changes.join(', ')}`,
+        descripcion: `Actualizó: ${detailedChanges.join(', ')}`,
         fecha_evento: updates.fecha_actualizacion,
       });
     }

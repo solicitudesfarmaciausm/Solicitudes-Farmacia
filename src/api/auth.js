@@ -40,3 +40,24 @@ export function changePassword({ currentPassword, newPassword }) {
     body: { currentPassword, newPassword },
   });
 }
+
+export function signupAdmin({
+  cedula,
+  nombre,
+  apellido,
+  correo_electronico,
+  password,
+  telefono,
+} = {}) {
+  return apiRequest('/api/auth/signup-admin', {
+    method: 'POST',
+    body: {
+      cedula,
+      nombre,
+      apellido,
+      correo_electronico,
+      password,
+      telefono,
+    },
+  });
+}

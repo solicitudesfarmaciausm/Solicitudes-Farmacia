@@ -55,7 +55,7 @@ const SolicitudAlumnoCard = ({ solicitud, loading = false }) => {
         <>
             <div
                 className="card bg-white shadow-md rounded-2xl p-4 cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => navigate(`/solicitud-alumno/${solicitud.id}`)}
+                onClick={() => navigate(`/solicitud/${solicitud.id}`)}
             >
                 <div className="flex justify-between">
                     <span className="text-gray-500">ID: #{solicitud.id}</span>
