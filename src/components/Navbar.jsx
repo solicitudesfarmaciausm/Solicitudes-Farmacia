@@ -1,10 +1,10 @@
 import { useRef, useState, useEffect } from "react";
-import { TbSchool } from "react-icons/tb"
 import { MdOutlineNotificationsActive, MdOutlineNotificationsNone } from "react-icons/md"
 import { Link, useNavigate } from "react-router"
 import LogOutModal from "./LogOutModal";
 import { getUser } from "../auth/session.js";
 import { obtenerNotificaciones, marcarNotificacionLeida, marcarTodasComoLeidas } from "../api/notificaciones.js";
+import { CiPill } from "react-icons/ci";
 
 function getUserInitials(user) {
     const nombre = String(user?.nombre ?? '').trim();
@@ -80,10 +80,12 @@ const Navbar = () => {
         <>
             <div className="navbar bg-blue-950 text-white shadow-sm sticky z-10 h-5" >
                 <div className="flex-none mx-4">
-                    <TbSchool className="text-white" size={"1.5em"}/>
+                    <Link to="/solicitudes" className="hover:opacity-80 transition-opacity">
+                        <CiPill className="text-white" size={"1.5em"}/>
+                    </Link>
                 </div>
                 <div className="flex-1 mx-2">
-                    <Link to="/solicitudes" className="text-xl">Sistema de Solicitudes</Link>
+                    <Link to="/solicitudes" className="text-xl font-medium hover:text-yellow-300 transition-colors">FarmaNET</Link>
                 </div>
                 
                 {/* Notificaciones */}

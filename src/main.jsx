@@ -12,14 +12,14 @@ import SolicitudAdmin from './components/Solicitudes/Admin/SolicitudAdmin.jsx'
 import SolicitudAlumno from './components/Solicitudes/Alumno/SolicitudAlumno.jsx'
 import RequireAuth from './auth/RequireAuth.jsx'
 import RedirectIfAuth from './auth/RedirectIfAuth.jsx'
-import RootRedirect from './auth/RootRedirect.jsx'
+import Landing from './pages/Landing.jsx'
 import CrearAdmin from './pages/CrearAdmin.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<RootRedirect />} />
+        <Route path="/" element={<Landing />} />
         <Route path="/login" element={<RedirectIfAuth><Login/></RedirectIfAuth>}/>
         <Route path="/signup" element={<RedirectIfAuth><Signup/></RedirectIfAuth>}/>
         <Route element={<RequireAuth><AppLayout/></RequireAuth>}>
