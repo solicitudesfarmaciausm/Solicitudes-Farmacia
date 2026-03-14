@@ -7,7 +7,7 @@ const router = express.Router();
 router.get('/', async (req, res) => {
     try {
         // Ejemplo con Supabase:
-        const { data, error } = await supabase.from('usuarios').select('id').limit(1);
+        const { data, error } = await supabase.from('usuario').select('id_usuario').limit(1);
         if (error) throw error;
         res.status(200).send('Backend y DB activos');
     } catch (err) {
