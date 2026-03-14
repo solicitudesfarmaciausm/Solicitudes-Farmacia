@@ -1,15 +1,14 @@
-import { useState } from "react";
 import PanelSolicitudesAlumno from "../components/Solicitudes/Alumno/PanelSolicitudesAlumno"
 import PanelSolicitudesAdmin from "../components/Solicitudes/Admin/PanelSolicitudesAdmin"
+import { canViewAllSolicitudes } from "../auth/session.js";
 
 
 
 const Solicitudes = ()=>{
-    const [isAdmin, setIsAdmin] = useState(false);
     return(
         <>
             
-            {isAdmin ? <PanelSolicitudesAdmin/> : <PanelSolicitudesAlumno/>}
+            {canViewAllSolicitudes() ? <PanelSolicitudesAdmin/> : <PanelSolicitudesAlumno/>}
         </>
 
         

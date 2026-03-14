@@ -2,6 +2,7 @@ import { Router } from 'express';
 import supabase from '../supabaseClient.js';
 import { parsePagination, parseIntParam, setPaginationHeaders } from '../utils/http.js';
 import { requireAuth } from '../middleware/auth.js';
+import multer from 'multer';
 
 const router = Router();
 
@@ -14,6 +15,24 @@ const SIGNED_URL_EXPIRES_IN = Number.parseInt(
   10
 );
 
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: Number.parseInt(process.env.MAX_UPLOAD_FILE_SIZE ?? String(10 * 1024 * 1024), 10), // 10MB
+    files: Number.parseInt(process.env.MAX_UPLOAD_FILES ?? '10', 10),
+  },
+});
+
+function sanitizeFilename(name) {
+  const raw = String(name ?? 'file').trim() || 'file';
+  // remove path separators and weird chars
+  return raw
+    .replace(/[/\\]+/g, '_')
+    .replace(/\s+/g, ' ')
+    .replace(/[^a-zA-Z0-9._ -]/g, '_')
+    .slice(0, 150);
+}
+
 function isHttpUrl(value) {
   if (typeof value !== 'string') return false;
   return value.startsWith('http://') || value.startsWith('https://');
@@ -24,8 +43,8 @@ function parseStorageRef(ruta_archivo) {
   if (!raw) return null;
   if (isHttpUrl(raw)) return { kind: 'url', url: raw };
 
-  const cleaned = raw.replace(/^\/+/, '');
-  const parts = cleaned.split('/').filter(Boolean);
+  const cleanedRaw = raw.replace(/^\/+/, '');
+  const parts = cleanedRaw.split('/').filter(Boolean);
 
   // If the first segment looks like a bucket and differs from env bucket, treat it as bucket.
   if (parts.length >= 2 && (!STORAGE_BUCKET || parts[0] !== STORAGE_BUCKET)) {
@@ -33,6 +52,14 @@ function parseStorageRef(ruta_archivo) {
   }
 
   if (!STORAGE_BUCKET) return { kind: 'unknown', raw };
+
+  // Accept both formats:
+  // - "<bucket>/<path>" (legacy or user-supplied)
+  // - "<path>" (preferred)
+  const cleaned = cleanedRaw.startsWith(`${STORAGE_BUCKET}/`)
+    ? cleanedRaw.slice(STORAGE_BUCKET.length + 1)
+    : cleanedRaw;
+
   return { kind: 'storage', bucket: STORAGE_BUCKET, path: cleaned };
 }
 
@@ -185,9 +212,18 @@ router.post('/', requireAuth, async (req, res) => {
 
 // GET /api/solicitudes
 // Optional query params: id_estudiante, id_estado_solicitud, id_tipo_solicitud, view=lite|full, limit, offset
-router.get('/', async (req, res) => {
+// Visibility rules:
+// - role 1 (estudiante): can only list their own solicitudes (id_estudiante = token user id)
+// - other roles (e.g. 2 staff, 3 coordinador): can list all (and optionally filter)
+router.get('/', requireAuth, async (req, res) => {
   try {
     const { from, to } = parsePagination(req.query);
+
+    const userId = Number(req.user?.id_usuario);
+    const roleId = Number(req.user?.id_rol);
+    if (!Number.isFinite(userId) || !Number.isFinite(roleId)) {
+      return res.status(401).json({ error: 'Invalid token payload' });
+    }
 
     const id_estudiante = parseIntParam(req.query.id_estudiante, 'id_estudiante');
     const id_estado_solicitud = parseIntParam(req.query.id_estado_solicitud, 'id_estado_solicitud');
@@ -202,7 +238,12 @@ router.get('/', async (req, res) => {
       .order('fecha_creacion', { ascending: false })
       .range(from, to);
 
-    if (id_estudiante !== undefined) query = query.eq('id_estudiante', id_estudiante);
+    if (roleId === 1) {
+      // Students can only view their own solicitudes, regardless of query.
+      query = query.eq('id_estudiante', userId);
+    } else {
+      if (id_estudiante !== undefined) query = query.eq('id_estudiante', id_estudiante);
+    }
     if (id_estado_solicitud !== undefined) query = query.eq('id_estado_solicitud', id_estado_solicitud);
     if (id_tipo_solicitud !== undefined) query = query.eq('id_tipo_solicitud', id_tipo_solicitud);
 
@@ -239,6 +280,45 @@ router.get('/:id_solicitud', async (req, res) => {
   } catch (err) {
     console.error('GET /api/solicitudes/:id_solicitud error:', err);
     return res.status(err?.status ?? 500).json({ error: err?.message ?? 'Failed to fetch solicitud' });
+  }
+});
+
+// POST /api/solicitudes/:id_solicitud/comentarios
+router.post('/:id_solicitud/comentarios', requireAuth, async (req, res) => {
+  try {
+    const idSolicitud = parseIntParam(req.params.id_solicitud, 'id_solicitud');
+    const { comentario } = req.body;
+    const userId = Number(req.user?.id_usuario);
+
+    if (typeof comentario !== 'string' || comentario.trim().length === 0) {
+      return res.status(400).json({ error: 'comentario is required' });
+    }
+
+    const { data, error } = await supabase
+      .from('comentario')
+      .insert({
+        id_solicitud: idSolicitud,
+        id_usuario: userId,
+        comentario: comentario.trim(),
+        fecha_creacion: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    await supabase.from('historial_solicitud').insert({
+      id_solicitud: idSolicitud,
+      id_usuario: userId,
+      accion: 'COMENTAR',
+      descripcion: 'Agregó un comentario',
+      fecha_evento: new Date().toISOString(),
+    });
+
+    return res.status(201).json(data);
+  } catch (err) {
+    console.error('POST /api/solicitudes/:id_solicitud/comentarios error:', err);
+    return res.status(err?.status ?? 500).json({ error: err?.message ?? 'Failed to create comentario' });
   }
 });
 
@@ -372,6 +452,77 @@ router.get('/:id_solicitud/archivos', authIfEnabled, async (req, res) => {
   }
 });
 
+// POST /api/solicitudes/:id_solicitud/archivos
+// multipart/form-data: files[]
+router.post('/:id_solicitud/archivos', requireAuth, upload.array('files'), async (req, res) => {
+  try {
+    const idSolicitud = parseIntParam(req.params.id_solicitud, 'id_solicitud');
+    await assertCanAccessSolicitud(req, idSolicitud);
+
+    if (!STORAGE_BUCKET) {
+      return res.status(500).json({ error: 'Missing SUPABASE_STORAGE_BUCKET in environment' });
+    }
+
+    const files = Array.isArray(req.files) ? req.files : [];
+    if (files.length === 0) {
+      return res.status(400).json({ error: 'No files provided' });
+    }
+
+    const nowIso = new Date().toISOString();
+    const uploadedRows = [];
+
+    for (const file of files) {
+      const original = sanitizeFilename(file.originalname);
+      const safeBase = `${Date.now()}_${Math.random().toString(16).slice(2)}_${original}`;
+      const storagePath = `solicitudes/${idSolicitud}/${safeBase}`;
+
+      const { error: upErr } = await supabase
+        .storage
+        .from(STORAGE_BUCKET)
+        .upload(storagePath, file.buffer, {
+          contentType: file.mimetype || 'application/octet-stream',
+          upsert: false,
+        });
+
+      if (upErr) {
+        const err = new Error(upErr.message);
+        err.status = 400;
+        throw err;
+      }
+
+      uploadedRows.push({
+        id_solicitud: idSolicitud,
+        nombre_archivo: original,
+        // Store only the path inside the bucket (parseStorageRef can still handle legacy "bucket/path")
+        ruta_archivo: storagePath,
+        tipo_archivo: file.mimetype || null,
+        fecha_subida: nowIso,
+      });
+    }
+
+    const { data, error } = await supabase
+      .from('archivo_adjunto')
+      .insert(uploadedRows)
+      .select(
+        `
+        id_archivo,
+        id_solicitud,
+        nombre_archivo,
+        ruta_archivo,
+        tipo_archivo,
+        fecha_subida
+      `
+      );
+
+    if (error) throw error;
+
+    return res.status(201).json(data ?? []);
+  } catch (err) {
+    console.error('POST /api/solicitudes/:id_solicitud/archivos error:', err);
+    return res.status(err?.status ?? 500).json({ error: err?.message ?? 'Failed to upload archivos adjuntos' });
+  }
+});
+
 // GET /api/solicitudes/:id_solicitud/archivos/:id_archivo
 // Query params: signed=1
 router.get('/:id_solicitud/archivos/:id_archivo', authIfEnabled, async (req, res) => {
@@ -417,7 +568,7 @@ router.get('/:id_solicitud/archivos/:id_archivo', authIfEnabled, async (req, res
 
 // PATCH /api/solicitudes/:id_solicitud
 // Partial update of a solicitud
-router.patch('/:id_solicitud', async (req, res) => {
+router.patch('/:id_solicitud', requireAuth, async (req, res) => {
   try {
     const idSolicitud = parseIntParam(req.params.id_solicitud, 'id_solicitud');
 
@@ -430,6 +581,8 @@ router.patch('/:id_solicitud', async (req, res) => {
     ];
 
     const updates = {};
+    const changes = [];
+
     for (const field of allowedFields) {
       if (Object.prototype.hasOwnProperty.call(req.body, field)) {
         updates[field] = req.body[field];
@@ -447,6 +600,7 @@ router.patch('/:id_solicitud', async (req, res) => {
         return res.status(400).json({ error: 'titulo must be a non-empty string' });
       }
       updates.titulo = updates.titulo.trim();
+      changes.push('título');
     }
 
     if (Object.prototype.hasOwnProperty.call(updates, 'descripcion')) {
@@ -454,13 +608,16 @@ router.patch('/:id_solicitud', async (req, res) => {
         return res.status(400).json({ error: 'descripcion must be a non-empty string' });
       }
       updates.descripcion = updates.descripcion.trim();
+      changes.push('descripción');
     }
 
     if (Object.prototype.hasOwnProperty.call(updates, 'id_tipo_solicitud')) {
       updates.id_tipo_solicitud = parseIntParam(updates.id_tipo_solicitud, 'id_tipo_solicitud');
+       changes.push('tipo de solicitud');
     }
     if (Object.prototype.hasOwnProperty.call(updates, 'id_estado_solicitud')) {
       updates.id_estado_solicitud = parseIntParam(updates.id_estado_solicitud, 'id_estado_solicitud');
+      changes.push('estado');
     }
     if (Object.prototype.hasOwnProperty.call(updates, 'id_personal_asignado')) {
       if (updates.id_personal_asignado === null) {
@@ -468,6 +625,7 @@ router.patch('/:id_solicitud', async (req, res) => {
       } else {
         updates.id_personal_asignado = parseIntParam(updates.id_personal_asignado, 'id_personal_asignado');
       }
+      changes.push('asignación');
     }
 
     updates.fecha_actualizacion = new Date().toISOString();
@@ -483,6 +641,16 @@ router.patch('/:id_solicitud', async (req, res) => {
 
     if (error) throw error;
     if (!data) return res.status(404).json({ error: 'Solicitud not found' });
+
+    if (changes.length > 0) {
+      await supabase.from('historial_solicitud').insert({
+        id_solicitud: idSolicitud,
+        id_usuario: req.user.id_usuario,
+        accion: 'ACTUALIZAR',
+        descripcion: `Actualizó: ${changes.join(', ')}`,
+        fecha_evento: updates.fecha_actualizacion,
+      });
+    }
 
     return res.status(200).json(data);
   } catch (err) {

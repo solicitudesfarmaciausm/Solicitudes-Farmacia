@@ -2,13 +2,14 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import supabase from '../supabaseClient.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
-    const err = new Error('Missing JWT_SECRET in environment');
+    const err = new Error('Falta JWT_SECRET en el entorno');
     err.status = 500;
     throw err;
   }
@@ -37,12 +38,12 @@ router.post('/signup', async (req, res) => {
 
     if (!cedula || !nombre || !apellido || !correo_electronico || !password) {
       return res.status(400).json({
-        error: 'Missing required fields: cedula, nombre, apellido, correo_electronico, password',
+        error: 'Faltan campos requeridos: cedula, nombre, apellido, correo_electronico, password',
       });
     }
 
     if (typeof password !== 'string' || password.length < 8) {
-      return res.status(400).json({ error: 'password must be at least 8 characters' });
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -54,7 +55,7 @@ router.post('/signup', async (req, res) => {
     let semestreValue = undefined;
     if (semestre !== undefined && semestre !== null && semestre !== '') {
       const n = Number.parseInt(String(semestre), 10);
-      if (!Number.isFinite(n)) return res.status(400).json({ error: 'semestre must be a number' });
+      if (!Number.isFinite(n)) return res.status(400).json({ error: 'Semestre debe ser un número válido' });
       semestreValue = n;
     }
 
@@ -92,7 +93,7 @@ router.post('/signup', async (req, res) => {
     return res.status(201).json(publicUser(data));
   } catch (err) {
     console.error('POST /api/auth/signup error:', err);
-    return res.status(err?.status ?? 500).json({ error: err?.message ?? 'Failed to signup' });
+    return res.status(err?.status ?? 500).json({ error: err?.message ?? 'Error al registrarse' });
   }
 });
 
@@ -107,7 +108,7 @@ router.post('/login', async (req, res) => {
       req.body?.correo_electronico;
 
     if (!identifier || !password) {
-      return res.status(400).json({ error: 'Missing credentials' });
+      return res.status(400).json({ error: 'Información incompleta' });
     }
 
     const identifierStr = String(identifier).trim();
@@ -119,12 +120,12 @@ router.post('/login', async (req, res) => {
       : await query.eq('cedula', identifierStr).maybeSingle();
 
     if (error) throw error;
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!user) return res.status(401).json({ error: 'Correo y/o contraseña incorrectos' });
 
-    if (!user.contrasena_hash) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!user.contrasena_hash) return res.status(401).json({ error: 'Correo y/o contraseña incorrectos' });
 
     const ok = await bcrypt.compare(String(password), String(user.contrasena_hash));
-    if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!ok) return res.status(401).json({ error: 'Correo y/o contraseña incorrectos' });
 
     const token = jwt.sign(
       { id_usuario: user.id_usuario, id_rol: user.id_rol },
@@ -147,7 +148,7 @@ router.post('/login', async (req, res) => {
     });
   } catch (err) {
     console.error('POST /api/auth/login error:', err);
-    return res.status(err?.status ?? 500).json({ error: err?.message ?? 'Failed to login' });
+    return res.status(err?.status ?? 500).json({ error: err?.message ?? 'Error al iniciar sesión' });
   }
 });
 
@@ -155,6 +156,52 @@ router.post('/login', async (req, res) => {
 // For JWT auth, logout is client-side (delete token). This endpoint exists for completeness.
 router.post('/logout', async (req, res) => {
   return res.status(200).json({ ok: true });
+});
+
+// POST /api/auth/change-password
+router.post('/change-password', requireAuth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body ?? {};
+    const userId = Number(req.user?.id_usuario);
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Información incompleta' });
+    }
+
+    if (typeof newPassword !== 'string' || newPassword.length < 8) {
+      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 8 caracteres' });
+    }
+
+    // Fetch user hash
+    const { data: user, error } = await supabase
+      .from('usuario')
+      .select('contrasena_hash')
+      .eq('id_usuario', userId)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    // Verify current
+    const ok = await bcrypt.compare(String(currentPassword), String(user.contrasena_hash));
+    if (!ok) return res.status(401).json({ error: 'Contraseña actual incorrecta' });
+
+    // Hash new
+    const newHash = await bcrypt.hash(newPassword, 10);
+
+    // Update
+    const { error: updateErr } = await supabase
+      .from('usuario')
+      .update({ contrasena_hash: newHash })
+      .eq('id_usuario', userId);
+
+    if (updateErr) throw updateErr;
+
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error('POST /api/auth/change-password error:', err);
+    return res.status(err?.status ?? 500).json({ error: err?.message ?? 'Error al cambiar la contraseña' });
+  }
 });
 
 export default router;

@@ -1,4 +1,46 @@
-import { apiRequest, buildQuery } from './client.js';
+import { apiRequest, buildQuery, API_BASE_URL } from './client.js';
+
+export function createSolicitud({ titulo, descripcion, id_tipo_solicitud } = {}) {
+  return apiRequest('/api/solicitudes', {
+    method: 'POST',
+    body: { titulo, descripcion, id_tipo_solicitud },
+  });
+}
+
+export async function uploadSolicitudArchivos(id_solicitud, files = []) {
+  const id = Number.parseInt(String(id_solicitud), 10);
+  if (!Number.isFinite(id)) throw new Error('id_solicitud inválido');
+  if (!Array.isArray(files) || files.length === 0) return [];
+
+  const form = new FormData();
+  for (const file of files) {
+    if (file) form.append('files', file);
+  }
+
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_BASE_URL}/api/solicitudes/${id}/archivos`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: form,
+  });
+
+  let payload;
+  try {
+    payload = await res.json();
+  } catch {
+    payload = null;
+  }
+
+  if (!res.ok) {
+    const message = payload?.error || payload?.message || `HTTP ${res.status}`;
+    const err = new Error(message);
+    err.status = res.status;
+    err.payload = payload;
+    throw err;
+  }
+
+  return payload ?? [];
+}
 
 export function listSolicitudes({
   id_estudiante,
@@ -49,3 +91,11 @@ export function getSolicitudArchivos(
 export function updateSolicitud(id_solicitud, updates) {
   return apiRequest(`/api/solicitudes/${id_solicitud}`, { method: 'PATCH', body: updates });
 }
+
+export function createSolicitudComentario(id_solicitud, comentario) {
+  return apiRequest(`/api/solicitudes/${id_solicitud}/comentarios`, {
+    method: 'POST',
+    body: { comentario },
+  });
+}
+

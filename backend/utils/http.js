@@ -9,12 +9,18 @@ export function parseIntParam(value, name) {
   return n;
 }
 
-export function parsePagination(query, { defaultLimit = 50, maxLimit = 200 } = {}) {
+export function parsePagination(query, { defaultLimit = 10, maxLimit = 200 } = {}) {
   const limitRaw = query?.limit ?? defaultLimit;
-  const offsetRaw = query?.offset ?? 0;
-
   const limit = parseIntParam(limitRaw, 'limit') ?? defaultLimit;
-  const offset = parseIntParam(offsetRaw, 'offset') ?? 0;
+
+  let offsetRaw = query?.offset;
+  // Soporte para parametro 'page' si no se envia 'offset'
+  if (offsetRaw === undefined && query?.page) {
+    const page = parseIntParam(query.page, 'page') || 1;
+    offsetRaw = (Math.max(page, 1) - 1) * limit;
+  }
+
+  const offset = parseIntParam(offsetRaw ?? 0, 'offset') ?? 0;
 
   const safeLimit = Math.min(Math.max(limit, 1), maxLimit);
   const safeOffset = Math.max(offset, 0);

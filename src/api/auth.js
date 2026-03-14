@@ -33,3 +33,10 @@ export function signup({
     },
   });
 }
+
+export function changePassword({ currentPassword, newPassword }) {
+  return apiRequest('/api/auth/change-password', {
+    method: 'POST',
+    body: { currentPassword, newPassword },
+  });
+}

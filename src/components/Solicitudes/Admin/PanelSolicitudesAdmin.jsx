@@ -1,9 +1,15 @@
-import { useEffect, useMemo, useState } from 'react'
-import { IoSearchOutline } from "react-icons/io5"
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { IoSearchOutline, IoDownloadOutline } from "react-icons/io5"
 import SolicitudAdminCard from "./SolicitudAdminCard"
 import SolicitudAdminTabla from "./SolicitudAdminTabla"
 
 import { listSolicitudes } from '../../../api/solicitudes.js'
+
+// TEST ONLY: multiply the displayed list size without needing many DB rows.
+// Set to 1 to disable.
+const TEST_REPEAT = 10
+
+const PAGE_SIZE = 25
 
 const formatFecha = (iso) => {
     if (!iso) return ''
@@ -17,11 +23,12 @@ const fullName = (u) => {
     return [u.nombre, u.apellido].filter(Boolean).join(' ').trim()
 }
 
-const toAdminRow = (s) => {
+const toAdminRow = (s, keySuffix = '') => {
     const estudiante = fullName(s.estudiante) || 'Sin estudiante'
     const cedula = s.estudiante?.cedula ?? ''
     const asignadoA = fullName(s.personal_asignado) || 'Sin asignar'
     return {
+        rowKey: `${s.id_solicitud}${keySuffix}`,
         id: s.id_solicitud,
         titulo: s.titulo,
         fecha: formatFecha(s.fecha_creacion),
@@ -33,36 +40,145 @@ const toAdminRow = (s) => {
     }
 }
 
+const repeatRows = (rows, times, keySeed = '') => {
+    const t = Number(times)
+    if (!Number.isFinite(t) || t <= 1) return rows
+
+    const out = []
+    for (let i = 0; i < t; i++) {
+        for (let j = 0; j < rows.length; j++) {
+            const r = rows[j]
+            out.push({
+                ...r,
+                rowKey: `${r.id}-${keySeed}-${i}-${j}`,
+            })
+        }
+    }
+    return out
+}
+
 const PanelSolicitudesAdmin = () => {
     const [solicitudes, setSolicitudes] = useState([])
     const [loading, setLoading] = useState(true)
+    const [loadingMore, setLoadingMore] = useState(false)
     const [error, setError] = useState(null)
+
+    const [offset, setOffset] = useState(0)
+    const [hasMore, setHasMore] = useState(true)
+
+    const sentinelRef = useRef(null)
 
     const [q, setQ] = useState('')
     const [estado, setEstado] = useState('')
     const [tipo, setTipo] = useState('')
     const [asignadoA, setAsignadoA] = useState('')
 
+    const handleDownloadReport = () => {
+        if (!solicitudesFiltradas.length) {
+            alert("No hay datos para exportar");
+            return;
+        }
+
+        const headers = ["ID", "Título", "Fecha", "Estado", "Tipo", "Estudiante", "Cédula", "Asignado A"];
+        
+        const csvRows = [headers.join(",")];
+        
+        solicitudesFiltradas.forEach(row => {
+            const values = [
+                row.id,
+                `"${(row.titulo || "").replace(/"/g, '""')}"`,
+                `"${(row.fecha || "").replace(/"/g, '""')}"`,
+                `"${(row.estado || "").replace(/"/g, '""')}"`,
+                `"${(row.tipo || "").replace(/"/g, '""')}"`,
+                `"${(row.estudiante || "").replace(/"/g, '""')}"`,
+                `"${(row.cedula || "").replace(/"/g, '""')}"`,
+                `"${(row.asignadoA || "").replace(/"/g, '""')}"`
+            ];
+            csvRows.push(values.join(","));
+        });
+
+        const csvContent = "\ufeff" + csvRows.join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `reporte_solicitudes_${new Date().toISOString().slice(0,10)}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     useEffect(() => {
         let cancelled = false
 
-        const load = async () => {
+        const loadPage = async ({ nextOffset, mode }) => {
+            const isInitial = mode === 'initial'
             try {
-                setLoading(true)
+                if (isInitial) {
+                    setLoading(true)
+                    setSolicitudes([])
+                    setOffset(0)
+                    setHasMore(true)
+                } else {
+                    setLoadingMore(true)
+                }
+
                 setError(null)
-                const data = await listSolicitudes({ view: 'full', limit: 200, offset: 0 })
+
+                const data = await listSolicitudes({ view: 'full', limit: PAGE_SIZE, offset: nextOffset })
                 if (cancelled) return
-                setSolicitudes((data ?? []).map(toAdminRow))
+
+                const rows = (data ?? []).map((s, idx) => toAdminRow(s, `-${nextOffset}-${idx}`))
+                const repeated = repeatRows(rows, TEST_REPEAT, String(nextOffset))
+
+                setSolicitudes((prev) => (isInitial ? repeated : [...prev, ...repeated]))
+                setOffset(nextOffset + PAGE_SIZE)
+                setHasMore((data ?? []).length === PAGE_SIZE)
             } catch (e) {
                 if (!cancelled) setError(e?.message ?? 'Error cargando solicitudes')
             } finally {
-                if (!cancelled) setLoading(false)
+                if (cancelled) return
+                if (isInitial) setLoading(false)
+                else setLoadingMore(false)
             }
         }
 
-        load()
+        loadPage({ nextOffset: 0, mode: 'initial' })
         return () => { cancelled = true }
     }, [])
+
+    useEffect(() => {
+        const el = sentinelRef.current
+        if (!el) return
+        if (loading || loadingMore) return
+        if (!hasMore || error) return
+
+        const obs = new IntersectionObserver(
+            (entries) => {
+                if (entries.some((e) => e.isIntersecting)) {
+                    // Use functional state reads by capturing current offset from state.
+                    setLoadingMore(true)
+                    listSolicitudes({ view: 'full', limit: PAGE_SIZE, offset })
+                        .then((data) => {
+                            const rows = (data ?? []).map((s, idx) => toAdminRow(s, `-${offset}-${idx}`))
+                            const repeated = repeatRows(rows, TEST_REPEAT, String(offset))
+                            setSolicitudes((prev) => [...prev, ...repeated])
+                            setOffset(offset + PAGE_SIZE)
+                            setHasMore((data ?? []).length === PAGE_SIZE)
+                        })
+                        .catch((e) => {
+                            setError(e?.message ?? 'Error cargando solicitudes')
+                        })
+                        .finally(() => setLoadingMore(false))
+                }
+            },
+            { root: null, rootMargin: '300px 0px', threshold: 0.01 }
+        )
+
+        obs.observe(el)
+        return () => obs.disconnect()
+    }, [offset, hasMore, loading, loadingMore, error])
 
     const estadosDisponibles = useMemo(() => {
         return Array.from(new Set(solicitudes.map(s => s.estado).filter(Boolean)))
@@ -99,6 +215,14 @@ const PanelSolicitudesAdmin = () => {
                 <h1 className="text-3xl sm:text-4xl sm:font-bold text-center my-3">
                     Panel Administrativo de Solicitudes
                 </h1>
+                <button
+                    className="btn btn-primary sm:btn-sm btn-outline rounded-2xl gap-2 mt-3 sm:mt-0"
+                    onClick={handleDownloadReport}
+                    title="Descargar reporte de solicitudes visibles (CSV)"
+                >
+                    <IoDownloadOutline size="1.2em" />
+                    Exportar Reporte
+                </button>
             </div>
 
             <label className="input rounded-full py-2 my-4 w-[90%] sm:w-[40%]">
@@ -200,11 +324,17 @@ const PanelSolicitudesAdmin = () => {
 
             <div className="flex flex-col gap-3 w-[90%] lg:hidden">
                 {!loading && !error && solicitudesFiltradas.length > 0 && solicitudesFiltradas.map((solicitud) => (
-                    <SolicitudAdminCard key={solicitud.id} solicitud={solicitud} />
+                    <SolicitudAdminCard key={solicitud.rowKey ?? solicitud.id} solicitud={solicitud} />
                 ))}
             </div>
             {!loading && !error && solicitudesFiltradas.length > 0 && (
                 <SolicitudAdminTabla solicitudes={solicitudesFiltradas} />
+            )}
+
+            {/* Infinite scroll sentinel */}
+            <div ref={sentinelRef} className="h-10 w-full" />
+            {!loading && !error && loadingMore && (
+                <div className="w-[90%] text-center text-gray-500 py-3">Cargando más...</div>
             )}
         </>
     )

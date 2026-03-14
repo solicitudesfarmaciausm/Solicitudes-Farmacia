@@ -1,12 +1,11 @@
-import { useState } from "react";
 import SolicitudAdminCard from "../components/Solicitudes/Admin/SolicitudAdminCard";
 import SolicitudAlumno from "../components/Solicitudes/Alumno/SolicitudAlumno";
+import { canViewAllSolicitudes } from "../auth/session.js";
 
 const Solicitud = () => {
-    const [isAdmin, setIsAdmin] = useState(true);
     return (
         <>
-            {isAdmin ? <SolicitudAdminCard/> : <SolicitudAlumno/>}
+            {canViewAllSolicitudes() ? <SolicitudAdminCard/> : <SolicitudAlumno/>}
         </>
     )
 }

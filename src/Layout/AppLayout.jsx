@@ -11,7 +11,7 @@ const AppLayout = () =>{
         <div className="h-screen max-h-screen w-screen gap-0">
                 <Navbar/>
                 <SolicitudModal />
-            <div className="flex flex-col h-[calc(100vh-80px)] max-h-[calc(100vh-80px)] sm:h-screen overflow-y-scroll items-center w-full pt-4 pb-32 sm:pb-4 box-border">
+            <div id="main-scroll-container" className="flex flex-col h-[calc(100vh-80px)] max-h-[calc(100vh-80px)] sm:h-screen overflow-y-scroll items-center w-full pt-4 pb-32 sm:pb-4 box-border">
 
                 <Outlet/>
 

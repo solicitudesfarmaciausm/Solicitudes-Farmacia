@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router'
 
-import { FaRegFileAlt } from 'react-icons/fa'
+import { FaRegFileAlt, FaFileUpload } from 'react-icons/fa'
 import { MdOutlineFileDownload } from 'react-icons/md'
 
-import { getSolicitud, getSolicitudArchivos, getSolicitudComentarios, getSolicitudHistorial } from '../../../api/solicitudes.js'
+import { getSolicitud, getSolicitudArchivos, getSolicitudComentarios, getSolicitudHistorial, createSolicitudComentario, uploadSolicitudArchivos } from '../../../api/solicitudes.js'
 
 const formatFecha = (iso) => {
     if (!iso) return ''
@@ -47,43 +47,70 @@ const SolicitudAlumno = () => {
     const [historial, setHistorial] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+    const [newComment, setNewComment] = useState('')
+    const [uploading, setUploading] = useState(false)
 
-    useEffect(() => {
-        let cancelled = false
-
-        const load = async () => {
-            if (!idSolicitud) {
-                setError('ID de solicitud inválido')
-                setLoading(false)
-                return
-            }
-
-            try {
-                setLoading(true)
-                setError(null)
-
-                const [s, a, c, h] = await Promise.all([
-                    getSolicitud(idSolicitud, { view: 'full' }),
-                    getSolicitudArchivos(idSolicitud, { limit: 100, offset: 0, signed: true }),
-                    getSolicitudComentarios(idSolicitud, { limit: 100, offset: 0 }),
-                    getSolicitudHistorial(idSolicitud, { limit: 100, offset: 0 }),
-                ])
-
-                if (cancelled) return
-                setSolicitud(s)
-                setArchivos(a ?? [])
-                setComentarios(c ?? [])
-                setHistorial(h ?? [])
-            } catch (e) {
-                if (!cancelled) setError(e?.message ?? 'Error cargando la solicitud')
-            } finally {
-                if (!cancelled) setLoading(false)
-            }
+    const loadData = async () => {
+        if (!idSolicitud) {
+            setError('ID de solicitud inválido')
+            setLoading(false)
+            return
         }
 
-        load()
-        return () => { cancelled = true }
+        try {
+            // setLoading(true) // Optional: don't flash loading state on updates
+            setError(null)
+
+            const [s, a, c, h] = await Promise.all([
+                getSolicitud(idSolicitud, { view: 'full' }),
+                getSolicitudArchivos(idSolicitud, { limit: 100, offset: 0, signed: true }),
+                getSolicitudComentarios(idSolicitud, { limit: 100, offset: 0 }),
+                getSolicitudHistorial(idSolicitud, { limit: 100, offset: 0 }),
+            ])
+
+            setSolicitud(s)
+            setArchivos(a ?? [])
+            setComentarios(c ?? [])
+            setHistorial(h ?? [])
+        } catch (e) {
+            setError(e?.message ?? 'Error cargando la solicitud')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        setLoading(true)
+        loadData()
     }, [idSolicitud])
+
+    const handlePostComentario = async () => {
+        if (!newComment.trim()) return
+        try {
+            await createSolicitudComentario(idSolicitud, newComment)
+            setNewComment('')
+            await loadData()
+        } catch (err) {
+            alert('Error publicando comentario: ' + err.message)
+        }
+    }
+
+    const handleFileUpload = async (e) => {
+        const files = Array.from(e.target.files)
+        if (files.length === 0) return
+
+        try {
+            setUploading(true)
+            await uploadSolicitudArchivos(idSolicitud, files)
+            // Clear input
+            e.target.value = null
+            await loadData()
+        } catch (err) {
+            alert('Error subiendo archivos: ' + err.message)
+        } finally {
+            setUploading(false)
+        }
+    }
 
     return (<div className="flex flex-col justify-center items-center w-full">
         <h3 className="text-xl font-bold text-center">Detalles de la solicitud</h3>
@@ -160,6 +187,20 @@ const SolicitudAlumno = () => {
                     )
                 })}
                 
+                <div className="mt-2">
+                   <label htmlFor="file-upload" className={`btn btn-sm btn-outline gap-2 ${uploading ? 'loading' : ''}`}>
+                        <FaFileUpload />
+                        Subir Archivos
+                   </label>
+                   <input 
+                        id="file-upload"
+                        type="file" 
+                        multiple 
+                        className="hidden" 
+                        onChange={handleFileUpload}
+                        disabled={uploading}
+                   />
+                </div>
 
                 <h2 className="font-extrabold text-xl self-start my-3">Historial de Comentarios</h2>
                 <div className="flex flex-col w-full gap-4">
@@ -199,8 +240,19 @@ const SolicitudAlumno = () => {
                 </div>
 
                 <h2 className="font-extrabold text-xl self-start my-3">Añadir Comentario</h2>
-                <textarea className="textarea w-full" placeholder="Agregar comentario..."></textarea>
-                <button className="btn bg-blue-800 text-white rounded-full mt-3 self-end w-full">Publicar Comentario</button>
+                <textarea 
+                    className="textarea w-full" 
+                    placeholder="Agregar comentario..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                >
+                </textarea>
+                <button 
+                    className="btn bg-blue-800 text-white rounded-full mt-3 self-end w-full"
+                    onClick={handlePostComentario}
+                >
+                    Publicar Comentario
+                </button>
 
             </div>
 

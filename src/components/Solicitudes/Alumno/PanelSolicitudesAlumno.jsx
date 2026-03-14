@@ -3,6 +3,8 @@ import { IoMdAddCircleOutline } from "react-icons/io"
 import SolicitudAlumnoCard from "./SolicitudAlumnoCard"
 import { IoAdd } from "react-icons/io5"
 import { listSolicitudes } from '../../../api/solicitudes.js'
+import { getRoleId } from '../../../auth/session.js'
+import InfiniteScroll from 'react-infinite-scroll-component'
 
 const formatFecha = (iso) => {
     if (!iso) return ''
@@ -46,6 +48,7 @@ const PanelSolicitudesAlumno = () => {
     const [solicitudes, setSolicitudes] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+    const [hasMore, setHasMore] = useState(true)
 
     const { listRef, measureRef, count: skeletonCount } = useSkeletonCount(loading)
 
@@ -55,6 +58,38 @@ const PanelSolicitudesAlumno = () => {
         return Number.isFinite(n) ? n : undefined
     }, [])
 
+    const LIMIT = 10;
+
+    const mapSolicitud = (s) => ({
+        id: s.id_solicitud,
+        titulo: s.titulo,
+        fecha: formatFecha(s.fecha_creacion),
+        estado: s.estado?.nombre ?? String(s.id_estado_solicitud ?? ''),
+        tipo: s.tipo?.nombre ?? String(s.id_tipo_solicitud ?? ''),
+    });
+
+    const fetchMoreData = async () => {
+        try {
+            const currentCount = solicitudes.length;
+            const data = await listSolicitudes({
+                id_estudiante: getRoleId() === 1 ? currentUserId : undefined,
+                view: 'full',
+                limit: LIMIT,
+                offset: currentCount,
+            });
+
+            const mapped = (data ?? []).map(mapSolicitud);
+            setSolicitudes(prev => [...prev, ...mapped]);
+
+            if ((data ?? []).length < LIMIT) {
+                setHasMore(false);
+            }
+        } catch (e) {
+            console.error("Error fetching more data:", e);
+            setHasMore(false);
+        }
+    };
+
     useEffect(() => {
         let cancelled = false
 
@@ -62,23 +97,23 @@ const PanelSolicitudesAlumno = () => {
             try {
                 setLoading(true)
                 setError(null)
+                setHasMore(true) // Reset hasMore on reload
 
                 const data = await listSolicitudes({
-                    id_estudiante: currentUserId,
+                    id_estudiante: getRoleId() === 1 ? currentUserId : undefined,
                     view: 'full',
-                    limit: 50,
+                    limit: LIMIT,
                     offset: 0,
                 })
 
-                const mapped = (data ?? []).map((s) => ({
-                    id: s.id_solicitud,
-                    titulo: s.titulo,
-                    fecha: formatFecha(s.fecha_creacion),
-                    estado: s.estado?.nombre ?? String(s.id_estado_solicitud ?? ''),
-                    tipo: s.tipo?.nombre ?? String(s.id_tipo_solicitud ?? ''),
-                }))
+                const mapped = (data ?? []).map(mapSolicitud);
 
-                if (!cancelled) setSolicitudes(mapped)
+                if (!cancelled) {
+                    setSolicitudes(mapped)
+                    if ((data ?? []).length < LIMIT) {
+                        setHasMore(false);
+                    }
+                }
             } catch (e) {
                 if (!cancelled) setError(e?.message ?? 'Error cargando solicitudes')
             } finally {
@@ -120,12 +155,34 @@ const PanelSolicitudesAlumno = () => {
                     </>
                 )}
                 {!loading && error && <div className="text-red-600 text-center font-semibold">{error}</div>}
-                {!loading && !error && solicitudes.length === 0 && (
-                    <div className="text-gray-500">No hay solicitudes.</div>
+                
+                {!loading && !error && (
+                    <InfiniteScroll
+                        dataLength={solicitudes.length}
+                        next={fetchMoreData}
+                        hasMore={hasMore}
+                        loader={
+                            <div className="flex flex-col gap-3 mt-3 overflow-hidden">
+                                <SolicitudAlumnoCard loading />
+                                <SolicitudAlumnoCard loading />
+                            </div>
+                        }
+                        endMessage={
+                            solicitudes.length > 0 ? (
+                                <p className="text-center text-gray-400 my-4">
+                                    <b>No hay más resultados</b>
+                                </p>
+                            ) : (
+                                <div className="text-gray-500 text-center">No hay solicitudes.</div>
+                            )
+                        }
+                        className="flex flex-col gap-3 overflow-visible"
+                    >
+                        {solicitudes.map((solicitud) => (
+                            <SolicitudAlumnoCard key={solicitud.id} solicitud={solicitud} />
+                        ))}
+                    </InfiniteScroll>
                 )}
-                {!loading && !error && solicitudes.map((solicitud) => (
-                    <SolicitudAlumnoCard key={solicitud.id} solicitud={solicitud} />
-                ))}
             </div>
         </>
     )

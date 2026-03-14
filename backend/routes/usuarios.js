@@ -1,16 +1,17 @@
 import { Router } from 'express';
 import supabase from '../supabaseClient.js';
 import { parsePagination, parseIntParam, setPaginationHeaders } from '../utils/http.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
 // GET /api/usuarios
 // Returns users WITHOUT contrasena_hash
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
     const { from, to } = parsePagination(req.query);
 
-    const paged = await supabase
+    let query = supabase
       .from('usuario')
       .select(
         [
@@ -24,7 +25,13 @@ router.get('/', async (req, res) => {
           'semestre',
         ].join(','),
         { count: 'exact' }
-      )
+      );
+
+    if (req.query.id_rol) {
+      query = query.eq('id_rol', req.query.id_rol);
+    }
+
+    const paged = await query
       .order('id_usuario', { ascending: true })
       .range(from, to);
 
@@ -40,9 +47,19 @@ router.get('/', async (req, res) => {
 
 // PATCH /api/usuarios/:id_usuario
 // Partial update of a user (does NOT allow updating contrasena_hash here)
-router.patch('/:id_usuario', async (req, res) => {
+router.patch('/:id_usuario', requireAuth, async (req, res) => {
   try {
     const idUsuario = parseIntParam(req.params.id_usuario, 'id_usuario');
+    const myId = Number(req.user?.id_usuario);
+    const myRole = Number(req.user?.id_rol);
+
+    // Only allow update if:
+    // 1. User is updating themselves
+    // 2. User is admin (role 2)
+    // 3. (Optional) Coordinator (role 3) might update students? Let's stick to 1 & 2 for now.
+    if (idUsuario !== myId && myRole !== 2) {
+      return res.status(403).json({ error: 'You can only update your own profile' });
+    }
 
     const allowedFields = [
       'cedula',

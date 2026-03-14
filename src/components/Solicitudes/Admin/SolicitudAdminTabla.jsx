@@ -38,7 +38,7 @@ const SolicitudAdminTabla = ({solicitudes}) => {
             <tbody>
                 
                 {solicitudes.map((solicitud) => (
-                    <tr key={solicitud.id} className="hover:bg-gray-100 cursor-pointer" onClick={()=>navigate(`/solicitud-admin/${solicitud.id}`)}>
+                    <tr key={solicitud.rowKey ?? solicitud.id} className="hover:bg-gray-100 cursor-pointer" onClick={()=>navigate(`/solicitud-admin/${solicitud.id}`)}>
                         <td className="font-bold">#{solicitud.id}</td>
                         <td>{solicitud.estudiante}</td>
                         <td>V-{solicitud.cedula}</td>
