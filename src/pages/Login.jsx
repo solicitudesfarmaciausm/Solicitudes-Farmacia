@@ -82,7 +82,7 @@ function Login() {
           <label htmlFor="identifier" className="self-start text-sm font-semibold text-gray-600 ml-1">
             Cédula o correo
           </label>
-          <label className="input validator flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 w-full transition-all duration-300 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/20 shadow-sm">
+          <label className="input validator flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 w-full transition-all duration-300 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/20 shadow-sm">
             <MdOutlinePerson className="text-gray-400 mr-2 text-xl min-w-5" />
             <input
               type="text"
@@ -102,10 +102,10 @@ function Login() {
           <label htmlFor="password" className="self-start text-sm font-semibold text-gray-600 ml-1">
             Contraseña
           </label>
-          <label className="input validator flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 w-full transition-all duration-300 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/20 shadow-sm">
+          <label className="input validator flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 w-full transition-all duration-300 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/20 shadow-sm">
             <MdOutlineLock className="text-gray-400 mr-2 text-xl min-w-5" />
             <input
-              className="w-full py-10 bg-transparent outline-none text-gray-800 placeholder-gray-400"
+              className="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400"
               type={visible ? "text" : "password"}
               required
               id="password"
