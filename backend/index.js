@@ -14,9 +14,12 @@ dotenv.config({ path: new URL('./.env', import.meta.url) });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
+const corsOptions = {
+  origin: process.env.FRONTEND_URL, // Pon tu URL de Vercel aquí
+  optionsSuccessStatus: 200
+};
 // Middleware
-app.use(cors()); // Allow frontend to talk to backend
+app.use(cors(corsOptions)); // Allow frontend to talk to backend
 app.use(express.json());
 
 // --- ROUTES ---
