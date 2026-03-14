@@ -5,6 +5,7 @@ import usersRouter from './routes/usuarios.js';
 import solicitudesRouter from './routes/solicitudes.js';
 import authRouter from './routes/auth.js';
 import notificacionesRouter from './routes/notificaciones.js';
+import pingRouter from './routes/ping.js'
 
 // Load env vars regardless of where node is executed from.
 // 1) repo root: servicio-comunitario/.env
@@ -33,6 +34,7 @@ app.use('/api/usuarios', usersRouter);
 app.use('/api/solicitudes', solicitudesRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/notificaciones', notificacionesRouter);
+app.use('/api/ping',pingRouter);
 
 // Start Server
 app.listen(PORT, () => {
