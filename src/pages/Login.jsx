@@ -82,7 +82,7 @@ function Login() {
           <label htmlFor="identifier" className="self-start text-sm font-semibold text-gray-600 ml-1">
             Cédula o correo
           </label>
-          <label className="input validator flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-5 w-full transition-all duration-300 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/20 shadow-sm">
+          <label className="input validator flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 w-full transition-all duration-300 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/20 shadow-sm">
             <MdOutlinePerson className="text-gray-400 mr-2 text-xl min-w-5" />
             <input
               type="text"
