@@ -5,7 +5,17 @@ import SolicitudAdminTabla from "./SolicitudAdminTabla"
 
 import { listSolicitudes } from '../../../api/solicitudes.js'
 
-const PAGE_SIZE = 25
+function usePageSize() {
+    const [pageSize, setPageSize] = useState(window.innerWidth < 1024 ? 10 : 25);
+    useEffect(() => {
+        function handleResize() {
+            setPageSize(window.innerWidth < 1024 ? 10 : 25);
+        }
+        window.addEventListener("resize", handleResize)
+        return () => window.removeEventListener("resize", handleResize)
+    }, []);
+    return pageSize;
+}
 
 const formatFecha = (iso) => {
     if (!iso) return ''
@@ -38,6 +48,8 @@ const toAdminRow = (s, keySuffix = '') => {
 }
 
 const PanelSolicitudesAdmin = () => {
+    const PAGE_SIZE = usePageSize();
+
     const [solicitudes, setSolicitudes] = useState([])
     const [loading, setLoading] = useState(true)
     const [loadingMore, setLoadingMore] = useState(false)
@@ -66,17 +78,106 @@ const PanelSolicitudesAdmin = () => {
         setFechaFin('')
     }
 
+    // Preparamos los filtros para pasarlos al backend
+    const apiFilters = useMemo(() => ({
+        view: 'full',
+        limit: PAGE_SIZE,
+        offset,
+        ...(estado ? { id_estado_solicitud: estado } : {}),
+        ...(tipo ? { id_tipo_solicitud: tipo } : {}),
+        ...(asignadoA ? { id_personal_asignado: asignadoA } : {}),
+        ...(q ? { q } : {}),
+        ...(fechaInicio ? { fecha_inicio: fechaInicio } : {}),
+        ...(fechaFin ? { fecha_fin: fechaFin } : {}),
+    }), [PAGE_SIZE, offset, estado, tipo, asignadoA, q, fechaInicio, fechaFin]);
+
+    // Estados para los selects – los valores de las opciones deben ser los ID (no nombres, si tu backend espera ids)
+    const estadosDisponibles = useMemo(() => {
+        const vals = Array.from(new Set(solicitudes.map(s => s.estado).filter(Boolean)));
+        return vals;
+    }, [solicitudes]);
+    const tiposDisponibles = useMemo(() => {
+        const vals = Array.from(new Set(solicitudes.map(s => s.tipo).filter(Boolean)));
+        return vals;
+    }, [solicitudes]);
+    const asignadosDisponibles = useMemo(() => {
+        const opciones = Array.from(new Set(solicitudes.map(s => s.asignadoA).filter(Boolean)))
+        return opciones.sort((a, b) => {
+            if (a === 'Sin asignar') return -1;
+            if (b === 'Sin asignar') return 1;
+            return a.localeCompare(b);
+        });
+    }, [solicitudes]);
+
+    // Nueva carga: cada vez que filtros O PAGE_SIZE cambian, reinicia paginación y pide desde 0
+    useEffect(() => {
+        let cancelled = false;
+        async function loadInitial() {
+            setLoading(true)
+            setSolicitudes([])
+            setOffset(0)
+            setHasMore(true)
+            setError(null)
+            try {
+                const params = { ...apiFilters, offset: 0 }
+                const data = await listSolicitudes(params)
+                if (cancelled) return;
+                const rows = (data ?? []).map((s, idx) => toAdminRow(s, `-0-${idx}`))
+                setSolicitudes(rows)
+                setOffset(PAGE_SIZE)
+                setHasMore((data ?? []).length === PAGE_SIZE)
+            } catch (e) {
+                if (!cancelled) setError(e?.message ?? 'Error cargando solicitudes')
+            } finally {
+                if (!cancelled) setLoading(false)
+            }
+        }
+        loadInitial();
+        return () => { cancelled = true }
+    // PAGE_SIZE está incluido, así en móvil/escritorio se recarga la paginación
+    }, [estado, tipo, asignadoA, q, fechaInicio, fechaFin, PAGE_SIZE])
+
+    // Infinite scroll: carga más manteniendo filtros activos
+    useEffect(() => {
+        const el = sentinelRef.current
+        if (!el) return
+        if (loading || loadingMore || !hasMore || error) return
+
+        const obs = new IntersectionObserver(
+            (entries) => {
+                if (entries.some((e) => e.isIntersecting)) {
+                    setLoadingMore(true)
+                    const params = { ...apiFilters, offset }
+                    listSolicitudes(params)
+                        .then((data) => {
+                            const rows = (data ?? []).map((s, idx) => toAdminRow(s, `-${offset}-${idx}`))
+                            setSolicitudes((prev) => [...prev, ...rows])
+                            setOffset(offset + PAGE_SIZE)
+                            setHasMore((data ?? []).length === PAGE_SIZE)
+                        })
+                        .catch((e) => {
+                            setError(e?.message ?? 'Error cargando solicitudes')
+                        })
+                        .finally(() => setLoadingMore(false))
+                }
+            },
+            { root: null, rootMargin: '300px 0px', threshold: 0.01 }
+        )
+        obs.observe(el)
+        return () => obs.disconnect()
+    }, [offset, hasMore, loading, loadingMore, error, apiFilters, PAGE_SIZE])
+
+    // El "Download" toma todas las solicitudes cargadas actualmente (ya filtradas por el backend)
     const handleDownloadReport = () => {
-        if (!solicitudesFiltradas.length) {
+        if (!solicitudes.length) {
             alert("No hay datos para exportar");
             return;
         }
 
         const headers = ["ID", "Título", "Fecha", "Estado", "Tipo", "Estudiante", "Cédula", "Asignado A"];
-        
         const csvRows = [headers.join(",")];
-        
-        solicitudesFiltradas.forEach(row => {
+
+        solicitudes.forEach(row => {
             const values = [
                 row.id,
                 `"${(row.titulo || "").replace(/"/g, '""')}"`,
@@ -101,121 +202,6 @@ const PanelSolicitudesAdmin = () => {
         link.click();
         document.body.removeChild(link);
     };
-
-    useEffect(() => {
-        let cancelled = false
-
-        const loadPage = async ({ nextOffset, mode }) => {
-            const isInitial = mode === 'initial'
-            try {
-                if (isInitial) {
-                    setLoading(true)
-                    setSolicitudes([])
-                    setOffset(0)
-                    setHasMore(true)
-                } else {
-                    setLoadingMore(true)
-                }
-
-                setError(null)
-
-                const data = await listSolicitudes({ view: 'full', limit: PAGE_SIZE, offset: nextOffset })
-                if (cancelled) return
-
-                const rows = (data ?? []).map((s, idx) => toAdminRow(s, `-${nextOffset}-${idx}`))
-
-                setSolicitudes((prev) => (isInitial ? rows : [...prev, ...rows]))
-                setOffset(nextOffset + PAGE_SIZE)
-                setHasMore((data ?? []).length === PAGE_SIZE)
-            } catch (e) {
-                if (!cancelled) setError(e?.message ?? 'Error cargando solicitudes')
-            } finally {
-                if (cancelled) return
-                if (isInitial) setLoading(false)
-                else setLoadingMore(false)
-            }
-        }
-
-        loadPage({ nextOffset: 0, mode: 'initial' })
-        return () => { cancelled = true }
-    }, [])
-
-    useEffect(() => {
-        const el = sentinelRef.current
-        if (!el) return
-        if (loading || loadingMore) return
-        if (!hasMore || error) return
-
-        const obs = new IntersectionObserver(
-            (entries) => {
-                if (entries.some((e) => e.isIntersecting)) {
-                    // Use functional state reads by capturing current offset from state.
-                    setLoadingMore(true)
-                    listSolicitudes({ view: 'full', limit: PAGE_SIZE, offset })
-                        .then((data) => {
-                            const rows = (data ?? []).map((s, idx) => toAdminRow(s, `-${offset}-${idx}`))
-                            setSolicitudes((prev) => [...prev, ...rows])
-                            setOffset(offset + PAGE_SIZE)
-                            setHasMore((data ?? []).length === PAGE_SIZE)
-                        })
-                        .catch((e) => {
-                            setError(e?.message ?? 'Error cargando solicitudes')
-                        })
-                        .finally(() => setLoadingMore(false))
-                }
-            },
-            { root: null, rootMargin: '300px 0px', threshold: 0.01 }
-        )
-
-        obs.observe(el)
-        return () => obs.disconnect()
-    }, [offset, hasMore, loading, loadingMore, error])
-
-    const estadosDisponibles = useMemo(() => {
-        return Array.from(new Set(solicitudes.map(s => s.estado).filter(Boolean)))
-    }, [solicitudes])
-
-    const tiposDisponibles = useMemo(() => {
-        return Array.from(new Set(solicitudes.map(s => s.tipo).filter(Boolean)))
-    }, [solicitudes])
-
-    const asignadosDisponibles = useMemo(() => {
-        const opciones = Array.from(new Set(solicitudes.map(s => s.asignadoA).filter(Boolean)))
-        return opciones.sort((a, b) => {
-            if (a === 'Sin asignar') return -1;
-            if (b === 'Sin asignar') return 1;
-            return a.localeCompare(b);
-        });
-    }, [solicitudes])
-
-    const solicitudesFiltradas = useMemo(() => {
-        const query = q.trim().toLowerCase()
-        const fInicio = fechaInicio ? new Date(fechaInicio + 'T00:00:00') : null
-        const fFin = fechaFin ? new Date(fechaFin + 'T23:59:59.999') : null
-
-        return solicitudes.filter((s) => {
-            if (estado && s.estado !== estado) return false
-            if (tipo && s.tipo !== tipo) return false
-            if (asignadoA && s.asignadoA !== asignadoA) return false
-
-            if (fInicio || fFin) {
-                const sDate = s.fechaIso ? new Date(s.fechaIso) : null
-                if (!sDate || Number.isNaN(sDate.getTime())) return false
-
-                if (fInicio && sDate < fInicio) return false
-                if (fFin && sDate > fFin) return false
-            }
-
-            if (!query) return true
-
-            return (
-                s.titulo?.toLowerCase().includes(query) ||
-                s.estudiante?.toLowerCase().includes(query) ||
-                String(s.cedula ?? '').toLowerCase().includes(query) ||
-                String(s.id ?? '').includes(query)
-            )
-        })
-    }, [solicitudes, q, estado, tipo, asignadoA, fechaInicio, fechaFin])
 
     return (
         <>
@@ -245,8 +231,6 @@ const PanelSolicitudesAdmin = () => {
             </label>
 
             <div className="w-[90%] flex flex-col sm:flex-row sm:flex-wrap my-2 gap-2 justify-center sm:items-center">
-                
-
                 <select
                     className="select rounded-2xl w-full sm:w-auto cursor-pointer"
                     value={estado}
@@ -280,7 +264,7 @@ const PanelSolicitudesAdmin = () => {
                     ))}
                 </select>
 
-<div className="flex flex-col sm:flex-row gap-2 items-center bg-gray-50 p-2 rounded-2xl border border-gray-200">
+                <div className="flex flex-col sm:flex-row gap-2 items-center bg-gray-50 p-2 rounded-2xl border border-gray-200">
                     <span className="text-sm text-gray-500 font-medium px-2">Desde:</span>
                     <input
                         type="date"
@@ -306,7 +290,6 @@ const PanelSolicitudesAdmin = () => {
                         Limpiar filtros
                     </button>
                 )}
-
             </div>
 
             {loading && (
@@ -354,19 +337,19 @@ const PanelSolicitudesAdmin = () => {
                 <div className="text-red-600 w-[90%] text-center font-semibold">{error}</div>
             )}
 
-            {!loading && !error && solicitudesFiltradas.length === 0 && (
+            {!loading && !error && solicitudes.length === 0 && (
                 <div className="w-[90%] text-center text-gray-500 py-8">
                     No hay resultados para los filtros seleccionados.
                 </div>
             )}
 
             <div className="flex flex-col gap-3 w-[90%] lg:hidden">
-                {!loading && !error && solicitudesFiltradas.length > 0 && solicitudesFiltradas.map((solicitud) => (
+                {!loading && !error && solicitudes.length > 0 && solicitudes.map((solicitud) => (
                     <SolicitudAdminCard key={solicitud.rowKey ?? solicitud.id} solicitud={solicitud} />
                 ))}
             </div>
-            {!loading && !error && solicitudesFiltradas.length > 0 && (
-                <SolicitudAdminTabla solicitudes={solicitudesFiltradas} />
+            {!loading && !error && solicitudes.length > 0 && (
+                <SolicitudAdminTabla solicitudes={solicitudes} />
             )}
 
             {/* Infinite scroll sentinel */}
