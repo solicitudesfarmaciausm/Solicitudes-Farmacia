@@ -26,7 +26,7 @@ const estadoBadgeClass = (estado) => {
     const e = (estado ?? '').toString().trim().toLowerCase()
     if (e === 'aprobada' || e === 'aprobado') return 'badge-success border-success'
     if (e === 'rechazada' || e === 'rechazado') return 'badge-error border-error'
-    if (e === 'en revisión' || e === 'en revision') return 'badge-warning border-warning'
+    if (e === 'en proceso') return 'badge-warning border-warning'
     return 'badge-info border-info'
 }
 
@@ -38,10 +38,10 @@ const fullName = (u) => {
 
 // Map Names to IDs (Approximation based on standard usage, verify with DB if possible)
 const ESTADOS = [
-    { id: 1, nombre: 'Enviada' },
+    { id: 1, nombre: 'Recibido' },
     { id: 2, nombre: 'En proceso' },
-    { id: 3, nombre: 'Aprobada' },
-    { id: 4, nombre: 'Rechazada' },
+    { id: 3, nombre: 'Aprobado' },
+    { id: 4, nombre: 'Rechazado' },
 ]
 
 const SolicitudAdmin = () => {
