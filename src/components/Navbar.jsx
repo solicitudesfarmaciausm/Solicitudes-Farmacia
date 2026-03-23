@@ -87,8 +87,7 @@ const Navbar = () => {
                 <div className="flex-1 mx-2">
                     <Link to="/solicitudes" className="text-xl font-medium hover:text-yellow-300 transition-colors">FarmaNET</Link>
                 </div>
-                
-{/* Notificaciones */}
+                {/* Notificaciones */}
 <div className="flex-none mx-2 dropdown dropdown-end">
     <div tabIndex={0} role="button" className="btn btn-ghost btn-circle relative">
         {noLeidas > 0 ? (
@@ -104,7 +103,8 @@ const Navbar = () => {
     </div>
     <ul
         tabIndex={0}
-        className="dropdown-content menu bg-base-100 rounded-box z-1 w-80 p-2 shadow-xl border border-gray-200 text-gray-800 max-h-96 overflow-y-auto overflow-x-hidden mt-4"
+        // Además de tus clases: flex flex-col para forzar columna siempre
+        className="dropdown-content menu bg-base-100 rounded-box flex flex-col z-1 w-80 p-2 shadow-xl border border-gray-200 text-gray-800 max-h-96 overflow-y-auto overflow-x-hidden mt-4"
     >
         <li className="menu-title flex flex-row justify-between items-center py-2 px-4 bg-gray-100/50 rounded-t-box border-b border-gray-200">
             <span className="font-bold text-gray-700">Notificaciones</span>
@@ -131,7 +131,8 @@ const Navbar = () => {
                             {!n.leida && <span className="w-2 h-2 rounded-full bg-blue-500 mt-1 flex-shrink-0"></span>}
                         </div>
                         <span
-                            className={`text-xs w-full text-left whitespace-normal break-words line-clamp-2 ${!n.leida ? 'text-gray-600 font-medium' : 'text-gray-500'}`}
+                            className="text-xs w-full text-left whitespace-normal break-words line-clamp-2"
+                            style={{ wordBreak: 'break-word' }}
                         >
                             {n.mensaje}
                         </span>
@@ -145,6 +146,8 @@ const Navbar = () => {
     </ul>
 </div>
 
+
+                
                 <div className="flex-none mx-2">
                     <div className="dropdown dropdown-end text-black" >
                         <div tabIndex={0} role="button" className="btn h-10 w-10 bg-yellow-300 text-blue-950 font-bold rounded-full">{initials}</div>
