@@ -13,6 +13,16 @@ const formatFecha = (iso) => {
     return date.toLocaleDateString()
 }
 
+function usePageSize() {
+    const [pageSize, setPageSize] = useState(window.innerWidth < 1024 ? 10 : 25);
+    useEffect(() => {
+        const handleResize = () => setPageSize(window.innerWidth < 1024 ? 10 : 25);
+        window.addEventListener('resize', handleResize)
+        return () => window.removeEventListener('resize', handleResize)
+    }, [])
+    return pageSize;
+}
+
 const useSkeletonCount = (isLoading) => {
     const listRef = useRef(null)
     const measureRef = useRef(null)
@@ -49,16 +59,16 @@ const PanelSolicitudesAlumno = () => {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [hasMore, setHasMore] = useState(true)
+    const [offset, setOffset] = useState(0)
 
     const { listRef, measureRef, count: skeletonCount } = useSkeletonCount(loading)
+    const PAGE_SIZE = usePageSize();
 
     const currentUserId = useMemo(() => {
         const raw = localStorage.getItem('id_usuario')
         const n = raw ? Number.parseInt(raw, 10) : undefined
         return Number.isFinite(n) ? n : undefined
     }, [])
-
-    const LIMIT = 10;
 
     const mapSolicitud = (s) => ({
         id: s.id_solicitud,
@@ -68,50 +78,30 @@ const PanelSolicitudesAlumno = () => {
         tipo: s.tipo?.nombre ?? String(s.id_tipo_solicitud ?? ''),
     });
 
-    const fetchMoreData = async () => {
-        try {
-            const currentCount = solicitudes.length;
-            const data = await listSolicitudes({
-                id_estudiante: getRoleId() === 1 ? currentUserId : undefined,
-                view: 'full',
-                limit: LIMIT,
-                offset: currentCount,
-            });
-
-            const mapped = (data ?? []).map(mapSolicitud);
-            setSolicitudes(prev => [...prev, ...mapped]);
-
-            if ((data ?? []).length < LIMIT) {
-                setHasMore(false);
-            }
-        } catch (e) {
-            console.error("Error fetching more data:", e);
-            setHasMore(false);
-        }
-    };
-
+    // Carga inicial y reset al cambiar de usuario o PAGE_SIZE
     useEffect(() => {
         let cancelled = false
-
-        const load = async () => {
+        async function load() {
             try {
                 setLoading(true)
                 setError(null)
-                setHasMore(true) // Reset hasMore on reload
+                setSolicitudes([])
+                setHasMore(true)
+                setOffset(0)
 
                 const data = await listSolicitudes({
                     id_estudiante: getRoleId() === 1 ? currentUserId : undefined,
                     view: 'full',
-                    limit: LIMIT,
+                    limit: PAGE_SIZE,
                     offset: 0,
                 })
-
                 const mapped = (data ?? []).map(mapSolicitud);
 
                 if (!cancelled) {
                     setSolicitudes(mapped)
-                    if ((data ?? []).length < LIMIT) {
-                        setHasMore(false);
+                    setOffset(mapped.length)
+                    if ((data ?? []).length < PAGE_SIZE) {
+                        setHasMore(false)
                     }
                 }
             } catch (e) {
@@ -120,12 +110,30 @@ const PanelSolicitudesAlumno = () => {
                 if (!cancelled) setLoading(false)
             }
         }
+        load();
+        return () => { cancelled = true }
+    }, [currentUserId, PAGE_SIZE])
 
-        load()
-        return () => {
-            cancelled = true
+    // Carga la siguiente página (solo si hasMore)
+    const fetchMoreData = async () => {
+        try {
+            const data = await listSolicitudes({
+                id_estudiante: getRoleId() === 1 ? currentUserId : undefined,
+                view: 'full',
+                limit: PAGE_SIZE,
+                offset: offset,
+            });
+            const mapped = (data ?? []).map(mapSolicitud);
+            setSolicitudes(prev => [...prev, ...mapped]);
+            setOffset(prev => prev + mapped.length);
+            if ((data ?? []).length < PAGE_SIZE) {
+                setHasMore(false);
+            }
+        } catch (e) {
+            setHasMore(false)
+            setError(e?.message ?? 'Error cargando solicitudes')
         }
-    }, [currentUserId])
+    };
 
     return (
         <>
