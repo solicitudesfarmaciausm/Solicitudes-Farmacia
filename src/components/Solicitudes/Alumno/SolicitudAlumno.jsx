@@ -203,28 +203,30 @@ const SolicitudAlumno = () => {
                 </div>
 
                 <h2 className="font-extrabold text-xl self-start my-3">Historial de Comentarios</h2>
-                <div className="flex flex-col w-full gap-4">
-                    {comentarios.length === 0 && (
-                        <div className="text-gray-500 text-sm">Sin comentarios.</div>
-                    )}
-                    {comentarios.map((c) => {
-                        const myUserIdRaw = localStorage.getItem('id_usuario')
-                        const myUserId = myUserIdRaw ? Number.parseInt(myUserIdRaw, 10) : null
-                        const isMine = myUserId && c.id_usuario === myUserId
-                        return (
-                            <div key={c.id_comentario} className={`chat ${isMine ? 'chat-end' : 'chat-start'}`}>
-                                <div className="chat-header">
-                                    {fullName(c.usuario)}
-                                    <time className="text-xs opacity-50 ml-2">{formatFechaHora(c.fecha_creacion)}</time>
+                <div className="flex flex-col w-full gap-4 max-h-96 overflow-y-auto">
+                    <div className="flex flex-col w-full gap-4">
+                        {comentarios.length === 0 && (
+                            <div className="text-gray-500 text-sm">Sin comentarios.</div>
+                        )}
+                        {comentarios.map((c) => {
+                            const myUserIdRaw = localStorage.getItem('id_usuario')
+                            const myUserId = myUserIdRaw ? Number.parseInt(myUserIdRaw, 10) : null
+                            const isMine = myUserId && c.id_usuario === myUserId
+                            return (
+                                <div key={c.id_comentario} className={`chat ${isMine ? 'chat-end' : 'chat-start'}`}>
+                                    <div className="chat-header">
+                                        {fullName(c.usuario)}
+                                        <time className="text-xs opacity-50 ml-2">{formatFechaHora(c.fecha_creacion)}</time>
+                                    </div>
+                                    <div className={`chat-bubble ${isMine ? 'bg-green-300 rounded-br-none' : 'bg-blue-300 rounded-bl-none'} rounded-2xl`}>{c.comentario}</div>
                                 </div>
-                                <div className={`chat-bubble ${isMine ? 'bg-green-300 rounded-br-none' : 'bg-blue-300 rounded-bl-none'} rounded-2xl`}>{c.comentario}</div>
-                            </div>
-                        )
-                    })}
+                            )
+                        })}
+                    </div>
                 </div>
 
                 <h2 className="font-extrabold text-xl self-start my-3">Historial de Cambios</h2>
-                <div className="flex flex-col w-full gap-2 text-sm text-gray-500">
+                <div className="flex flex-col w-full gap-2 text-sm text-gray-500 max-h-96 overflow-y-auto">
                     {historial.length === 0 && (
                         <div className="text-gray-500 text-sm">Sin historial.</div>
                     )}
