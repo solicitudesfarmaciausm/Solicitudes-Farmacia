@@ -249,7 +249,7 @@ const SolicitudAdmin = () => {
                         )}
 
                         <h2 className="font-extrabold text-xl self-start my-3">Historial de Comentarios</h2>
-                        <div className="flex flex-col w-full gap-4">
+                        <div className="flex flex-col w-full gap-4 max-h-96 overflow-y-auto">
                             {comentarios.length === 0 && (
                                 <div className="text-gray-500 text-sm">Sin comentarios.</div>
                             )}
@@ -270,7 +270,7 @@ const SolicitudAdmin = () => {
                         </div>
 
                 <h2 className="font-extrabold text-xl self-start my-3">Historial de Cambios</h2>
-                <div className="flex flex-col w-full gap-2 text-sm text-gray-500">
+                <div className="flex flex-col w-full gap-2 text-sm text-gray-500 max-h-96 overflow-y-auto">
                     {historial.length === 0 && (
                         <div className="text-gray-500 text-sm">Sin historial.</div>
                     )}
