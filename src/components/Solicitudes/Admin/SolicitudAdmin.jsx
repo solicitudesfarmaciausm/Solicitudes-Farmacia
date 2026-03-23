@@ -39,7 +39,7 @@ const fullName = (u) => {
 // Map Names to IDs (Approximation based on standard usage, verify with DB if possible)
 const ESTADOS = [
     { id: 1, nombre: 'Enviada' },
-    { id: 2, nombre: 'En Revisión' },
+    { id: 2, nombre: 'En proceso' },
     { id: 3, nombre: 'Aprobada' },
     { id: 4, nombre: 'Rechazada' },
 ]
