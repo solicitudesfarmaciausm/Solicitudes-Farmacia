@@ -7,11 +7,10 @@ const conseguirEstadoColor = (estado) => {
         case "recibido":
             return "badge-info"
         case "en proceso":
-        case "enproceso":
             return "badge-warning"
         case "resuelto":
             return "badge-success"
-        case "cerrado":
+        case "rechazado":
             return "badge-error"
         default:
             return "badge-neutral"
