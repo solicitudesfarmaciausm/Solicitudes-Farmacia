@@ -3,21 +3,15 @@
   themes: light --default;
 }
 
-html {
-  background-color: whitesmoke;
-  /* Cambia width: 100vw por 100% para evitar problemas con la barra de scroll */
-  width: 100%; 
-  /* ELIMINA max-height: 100vh */
-  min-height: 100%; 
-  overflow-x: hidden;
-}
-
-body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  /* Evita el uso de 100vw en móviles ya que no incluye el ancho de la barra de scroll */
-  overflow-x: hidden; 
+html, body {
+  /* Elimina TODA restricción de altura */
+  height: auto !important;
+  min-height: 100% !important;
+  /* Solo oculta el horizontal si es necesario */
+  overflow-x: clip; 
+  /* Permite que el navegador gestione el scroll */
+  overscroll-behavior-y: auto; 
+  -webkit-overflow-scrolling: touch;
 }
 
 *,
