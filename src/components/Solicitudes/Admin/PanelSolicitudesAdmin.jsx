@@ -204,7 +204,9 @@ const PanelSolicitudesAdmin = () => {
     };
 
     return (
-        <>
+        
+<div className="flex flex-col items-center w-full touch-pan-y"> 
+
             <div className="w-[90%] justify-between items-center sm:flex">
                 <h1 className="text-3xl sm:text-4xl sm:font-bold text-center my-3">
                     Panel Administrativo de Solicitudes
@@ -359,7 +361,8 @@ const PanelSolicitudesAdmin = () => {
             {!loading && !error && loadingMore && (
                 <div className="w-[90%] text-center text-gray-500 py-3">Cargando más...</div>
             )}
-        </>
+
+    </div>
     )
 }
 export default PanelSolicitudesAdmin
