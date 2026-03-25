@@ -26,11 +26,57 @@ const Navbar = () => {
     
     const navigate = useNavigate();
 
-    // ... (tus funciones fetchNotificaciones, handleClicNotificacion, etc. se mantienen igual)
+const fetchNotificaciones = async () => {
+    try {
+        const data = await obtenerNotificaciones();
+        setNotificaciones(data || []);
+    } catch (error) {
+        console.error("Error fetching notifications", error);
+    }
+};
 
-    const user = getUser();
-    const isCoordinator = user?.id_rol === 3;
-    const initials = getUserInitials(user);
+useEffect(() => {
+    // Fetch initially
+    fetchNotificaciones();
+    
+    // Polling every 30s to keep them updated
+    const interval = setInterval(() => {
+        fetchNotificaciones()
+    }, 30000);
+    return () => clearInterval(interval);
+}, []);
+
+const noLeidas = notificaciones.filter(n => !n.leida).length;
+
+const handleClicNotificacion = async (notificacion) => {
+    if (!notificacion.leida) {
+        try {
+            await marcarNotificacionLeida(notificacion.id_notificacion);
+            setNotificaciones(prev => prev.map(n => n.id_notificacion === notificacion.id_notificacion ? { ...n, leida: true } : n));
+        } catch (error) {
+            console.error("Failed to mark as read", error);
+        }
+    }
+    if (notificacion.enlace) {
+        navigate(notificacion.enlace);
+    }
+};
+
+const handleMarcarTodas = async () => {
+    try {
+        await marcarTodasComoLeidas();
+        setNotificaciones(prev => prev.map(n => ({...n, leida: true})));
+    } catch(error) {
+        console.error(error);
+    }
+}
+const firstItemRef = useRef(null);
+const secondItemRef = useRef(null);
+const thirdItemRef = useRef(null);
+
+const user = getUser();
+const isCoordinator = user?.id_rol === 3;
+const initials = getUserInitials(user);
 
     return (
         <>
