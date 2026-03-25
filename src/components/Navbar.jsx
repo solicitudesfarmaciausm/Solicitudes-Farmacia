@@ -20,63 +20,80 @@ function getUserInitials(user) {
 }
 
 const Navbar = () => {
-    const [showNotifs, setShowNotifs] = useState(false);
+    const[showNotifs, setShowNotifs] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
     const [notificaciones, setNotificaciones] = useState([]);
     
+    // Referencias para detectar clics fuera
+    const notifRef = useRef(null);
+    const profileRef = useRef(null);
+
     const navigate = useNavigate();
 
-const fetchNotificaciones = async () => {
-    try {
-        const data = await obtenerNotificaciones();
-        setNotificaciones(data || []);
-    } catch (error) {
-        console.error("Error fetching notifications", error);
-    }
-};
-
-useEffect(() => {
-    // Fetch initially
-    fetchNotificaciones();
-    
-    // Polling every 30s to keep them updated
-    const interval = setInterval(() => {
-        fetchNotificaciones()
-    }, 30000);
-    return () => clearInterval(interval);
-}, []);
-
-const noLeidas = notificaciones.filter(n => !n.leida).length;
-
-const handleClicNotificacion = async (notificacion) => {
-    if (!notificacion.leida) {
+    const fetchNotificaciones = async () => {
         try {
-            await marcarNotificacionLeida(notificacion.id_notificacion);
-            setNotificaciones(prev => prev.map(n => n.id_notificacion === notificacion.id_notificacion ? { ...n, leida: true } : n));
+            const data = await obtenerNotificaciones();
+            setNotificaciones(data ||[]);
         } catch (error) {
-            console.error("Failed to mark as read", error);
+            console.error("Error fetching notifications", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchNotificaciones();
+        const interval = setInterval(() => {
+            fetchNotificaciones()
+        }, 30000);
+        return () => clearInterval(interval);
+    },[]);
+
+    // NUEVO: Efecto para cerrar menús si haces clic en otra parte de la pantalla
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (notifRef.current && !notifRef.current.contains(event.target)) {
+                setShowNotifs(false);
+            }
+            if (profileRef.current && !profileRef.current.contains(event.target)) {
+                setShowProfile(false);
+            }
+        };
+        // Detecta clics y toques en móviles
+        document.addEventListener("mousedown", handleClickOutside);
+        document.addEventListener("touchstart", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener("touchstart", handleClickOutside);
+        };
+    },[]);
+
+    const noLeidas = notificaciones.filter(n => !n.leida).length;
+
+    const handleClicNotificacion = async (notificacion) => {
+        if (!notificacion.leida) {
+            try {
+                await marcarNotificacionLeida(notificacion.id_notificacion);
+                setNotificaciones(prev => prev.map(n => n.id_notificacion === notificacion.id_notificacion ? { ...n, leida: true } : n));
+            } catch (error) {
+                console.error("Failed to mark as read", error);
+            }
+        }
+        if (notificacion.enlace) {
+            navigate(notificacion.enlace);
+        }
+    };
+
+    const handleMarcarTodas = async () => {
+        try {
+            await marcarTodasComoLeidas();
+            setNotificaciones(prev => prev.map(n => ({...n, leida: true})));
+        } catch(error) {
+            console.error(error);
         }
     }
-    if (notificacion.enlace) {
-        navigate(notificacion.enlace);
-    }
-};
 
-const handleMarcarTodas = async () => {
-    try {
-        await marcarTodasComoLeidas();
-        setNotificaciones(prev => prev.map(n => ({...n, leida: true})));
-    } catch(error) {
-        console.error(error);
-    }
-}
-const firstItemRef = useRef(null);
-const secondItemRef = useRef(null);
-const thirdItemRef = useRef(null);
-
-const user = getUser();
-const isCoordinator = user?.id_rol === 3;
-const initials = getUserInitials(user);
+    const user = getUser();
+    const isCoordinator = user?.id_rol === 3;
+    const initials = getUserInitials(user);
 
     return (
         <>
@@ -91,14 +108,19 @@ const initials = getUserInitials(user);
                 </div>
 
                 {/* --- SECCIÓN NOTIFICACIONES --- */}
-                {/* Agregamos dropdown-open para forzar visibilidad y dropdown-end para alinear a la derecha */}
-                <div className={`flex-none mx-2 dropdown dropdown-end ${showNotifs ? 'dropdown-open' : ''}`} 
-                     onBlur={() => setTimeout(() => setShowNotifs(false), 200)}>
+                {/* 1. Usamos notifRef */}
+                {/* 2. Agregamos dropdown-bottom para evitar que se corte hacia arriba */}
+                <div 
+                    ref={notifRef} 
+                    className={`flex-none mx-2 dropdown dropdown-bottom dropdown-end ${showNotifs ? 'dropdown-open' : ''}`}
+                >
                     <div 
-                        tabIndex={0} 
                         role="button" 
                         className="btn btn-ghost btn-circle relative"
-                        onClick={() => setShowNotifs(!showNotifs)}
+                        onClick={() => {
+                            setShowNotifs(!showNotifs);
+                            setShowProfile(false); // Cierra el otro si está abierto
+                        }}
                     >
                         {noLeidas > 0 ? (
                             <>
@@ -112,13 +134,12 @@ const initials = getUserInitials(user);
                         )}
                     </div>
                     
-                    {/* El renderizado condicional {showNotifs && ...} es lo que libera el scroll en móvil */}
                     {showNotifs && (
-                        <ul className="dropdown-content menu bg-base-100 rounded-box z-[100] w-80 p-2 shadow-xl border border-gray-200 text-gray-800 max-h-[70vh] overflow-y-auto mt-2">
+                        <ul className="dropdown-content menu bg-base-100 rounded-box z-[100] w-80 p-2 shadow-xl border border-gray-200 text-gray-800 max-h-[70vh] overflow-y-auto">
                             <li className="menu-title flex flex-row justify-between items-center py-2 px-4 bg-gray-100/50 rounded-t-box border-b border-gray-200 sticky top-0 z-10 backdrop-blur-sm">
                                 <span className="font-bold text-gray-700">Notificaciones</span>
                                 {noLeidas > 0 && (
-                                    <button onClick={(e) => { e.stopPropagation(); handleMarcarTodas(); }} className="text-xs text-blue-600 font-medium">
+                                    <button onClick={(e) => { e.stopPropagation(); handleMarcarTodas(); }} className="text-xs text-blue-600 font-medium hover:text-blue-800">
                                         Marcar leídas
                                     </button>
                                 )}
@@ -143,18 +164,24 @@ const initials = getUserInitials(user);
                 </div>
 
                 {/* --- SECCIÓN PERFIL --- */}
-                <div className={`flex-none mx-2 dropdown dropdown-end ${showProfile ? 'dropdown-open' : ''}`}
-                     onBlur={() => setTimeout(() => setShowProfile(false), 200)}>
+                {/* 1. Usamos profileRef */}
+                {/* 2. Agregamos dropdown-bottom */}
+                <div 
+                    ref={profileRef} 
+                    className={`flex-none mx-2 dropdown dropdown-bottom dropdown-end ${showProfile ? 'dropdown-open' : ''}`}
+                >
                     <div 
-                        tabIndex={0} 
                         role="button" 
                         className="btn h-10 w-10 bg-yellow-300 text-blue-950 font-bold rounded-full"
-                        onClick={() => setShowProfile(!showProfile)}
+                        onClick={() => {
+                            setShowProfile(!showProfile);
+                            setShowNotifs(false); // Cierra el otro si está abierto
+                        }}
                     >
                         {initials}
                     </div>
                     {showProfile && (
-                        <ul className="dropdown-content menu bg-base-100 rounded-box z-[100] w-52 p-2 shadow-xl border border-gray-200 text-black mt-2">
+                        <ul className="dropdown-content menu bg-base-100 rounded-box z-[100] w-52 p-2 shadow-xl border border-gray-200 text-black">
                             <li><Link to="/perfil" onClick={() => setShowProfile(false)}>Perfil</Link></li>
                             {isCoordinator && (
                                 <li><Link to="/crear-admin" onClick={() => setShowProfile(false)}>Crear Administrador</Link></li>
@@ -168,4 +195,4 @@ const initials = getUserInitials(user);
         </>
     );
 };
-export default Navbar
+export default Navbar;
