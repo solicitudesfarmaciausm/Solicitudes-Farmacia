@@ -359,7 +359,7 @@ const PanelSolicitudesAdmin = () => {
                 ))}
             </div>
             {!loading && !error && solicitudes.length > 0 && (
-                <div className="hidden lg:block w-[90%]">
+                <div className="hidden lg:block w-[90%] justify-center overflow-x-auto">
                     <SolicitudAdminTabla solicitudes={solicitudes} />
                 </div>
             )}
