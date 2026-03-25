@@ -109,7 +109,7 @@ const Navbar = () => {
                     )}
                 </div>
                     
-                    {/* CORRECCIÓN AQUÍ: */}
+            {showNotifs && (
                     <ul
                         tabIndex={0}
                         className={`dropdown-content menu bg-base-100 rounded-box flex flex-col flex-nowrap z-[1] w-80 p-2 shadow-xl border border-gray-200 text-gray-800 max-h-[70vh] overflow-y-auto mt-4 ${showNotifs ? 'block' : 'hidden'}`}
@@ -152,6 +152,7 @@ const Navbar = () => {
                             ))
                         )}
                     </ul>
+            )}
                 </div>
 
                 {/* Resto del navbar (Perfil, etc) */}
