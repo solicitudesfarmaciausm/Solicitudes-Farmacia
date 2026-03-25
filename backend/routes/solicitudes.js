@@ -231,8 +231,7 @@ router.post('/', requireAuth, async (req, res) => {
 // Optional query params: id_estudiante, id_estado_solicitud, id_tipo_solicitud, id_personal_asignado, fecha_inicio, fecha_fin, q, view=lite|full, limit, offset
 router.get('/', requireAuth, async (req, res) => {
   try {
-    // --- LOG PARA DEBUGEAR EN TU TERMINAL DEL BACKEND ---
-    console.log("🔎 QUERY RECIBIDA EN BACKEND:", req.query);
+
 
     const { from, to } = parsePagination(req.query);
 
