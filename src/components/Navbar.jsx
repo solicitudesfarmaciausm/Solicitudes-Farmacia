@@ -20,7 +20,9 @@ function getUserInitials(user) {
 }
 
 const Navbar = () => {
-    const [open, setOpen] = useState(false);
+// Reemplaza el estado 'open' por estos dos:
+    const [showNotifs, setShowNotifs] = useState(false);
+    const [showProfile, setShowProfile] = useState(false);
     const [notificaciones, setNotificaciones] = useState([]);
     
     const navigate = useNavigate();
@@ -90,24 +92,27 @@ const Navbar = () => {
                 </div>
 
                 {/* Notificaciones */}
-                <div className="flex-none mx-2 dropdown dropdown-end">
-                    <div tabIndex={0} role="button" className="btn btn-ghost btn-circle relative">
-                        {noLeidas > 0 ? (
-                            <>
-                                <MdOutlineNotificationsActive size={"1.5em"} className="text-yellow-400" />
-                                <span className="absolute top-0 right-0 rounded-full bg-red-600 text-white text-xs w-4 h-4 flex items-center justify-center">
-                                    {noLeidas > 9 ? '9+' : noLeidas}
-                                </span>
-                            </>
-                        ) : (
-                            <MdOutlineNotificationsNone size={"1.5em"} />
-                        )}
-                    </div>
+               <div 
+                    tabIndex={0} role="button" className="btn btn-ghost btn-circle relative"
+                    onClick={() => setShowNotifs(!showNotifs)}
+                    onBlur={() => setTimeout(() => setShowNotifs(false), 200)}
+                >
+                    {noLeidas > 0 ? (
+                        <>
+                            <MdOutlineNotificationsActive size={"1.5em"} className="text-yellow-400" />
+                            <span className="absolute top-0 right-0 rounded-full bg-red-600 text-white text-xs w-4 h-4 flex items-center justify-center">
+                                {noLeidas > 9 ? '9+' : noLeidas}
+                            </span>
+                        </>
+                    ) : (
+                        <MdOutlineNotificationsNone size={"1.5em"} />
+                    )}
+                </div>
                     
                     {/* CORRECCIÓN AQUÍ: */}
                     <ul
                         tabIndex={0}
-className="dropdown-content menu bg-base-100 rounded-box flex flex-col flex-nowrap z-[1] w-80 p-2 shadow-xl border border-gray-200 text-gray-800 max-h-[70vh] overflow-y-auto mt-4 pointer-events-none focus-within:pointer-events-auto invisible focus-within:visible
+                        className={`dropdown-content menu bg-base-100 rounded-box flex flex-col flex-nowrap z-[1] w-80 p-2 shadow-xl border border-gray-200 text-gray-800 max-h-[70vh] overflow-y-auto mt-4 ${showNotifs ? 'block' : 'hidden'}`}
                     >
                         <li className="menu-title flex flex-row justify-between items-center py-2 px-4 bg-gray-100/50 rounded-t-box border-b border-gray-200 shrink-0 sticky top-0 z-10 backdrop-blur-sm">
                             <span className="font-bold text-gray-700">Notificaciones</span>
