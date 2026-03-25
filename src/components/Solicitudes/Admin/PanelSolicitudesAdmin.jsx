@@ -111,19 +111,35 @@ const PanelSolicitudesAdmin = () => {
             return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
         });
     }, [solicitudes]);
+const apiFilters = useMemo(() => {
+        const filters = {
+            view: 'full',
+            limit: PAGE_SIZE,
+            offset,
+            // Envíos directos basados en los nombres exactos de tus columnas
+            ...(estado ? { id_estado_solicitud: Number(estado) } : {}),
+            ...(tipo ? { id_tipo_solicitud: Number(tipo) } : {}),
+            ...(asignadoA ? { id_personal_asignado: Number(asignadoA) } : {}),
+            ...(q ? { q } : {}),
+        };
 
-    // PREPARAMOS LOS FILTROS PARA EL BACKEND (AQUÍ FORZAMOS EL Number() PARA EVITAR EL ERROR)
-    const apiFilters = useMemo(() => ({
-        view: 'full',
-        limit: PAGE_SIZE,
-        offset,
-        ...(estado ? { id_estado_solicitud: Number(estado) } : {}),
-        ...(tipo ? { id_tipo_solicitud: Number(tipo) } : {}),
-        ...(asignadoA ? { id_personal_asignado: Number(asignadoA) } : {}),
-        ...(q ? { q } : {}),
-        ...(fechaInicio ? { fecha_inicio: fechaInicio } : {}),
-        ...(fechaFin ? { fecha_fin: fechaFin } : {}),
-    }), [PAGE_SIZE, offset, estado, tipo, asignadoA, q, fechaInicio, fechaFin]);
+        if (fechaInicio) {
+            // Posibles variables que tu backend podría estar esperando
+            filters.fecha_inicio = fechaInicio;
+            filters.fecha_creacion_gte = fechaInicio; // gte = Greater Than or Equal
+            filters.fecha_creacion_desde = fechaInicio;
+        }
+        if (fechaFin) {
+            // Añadimos 23:59:59 porque tu BD usa "timestamp with time zone"
+            const finDia = `${fechaFin} 23:59:59`;
+            filters.fecha_fin = finDia;
+            filters.fecha_creacion_lte = finDia; // lte = Less Than or Equal
+            filters.fecha_creacion_hasta = finDia;
+        }
+
+        console.log("Filtros enviados al API:", filters); // <-- ESTO ES CLAVE PARA DEBUGEAR
+        return filters;
+    },[PAGE_SIZE, offset, estado, tipo, asignadoA, q, fechaInicio, fechaFin]);
 
     // Nueva carga
     useEffect(() => {
