@@ -227,6 +227,8 @@ router.post('/', requireAuth, async (req, res) => {
 // Visibility rules:
 // - role 1 (estudiante): can only list their own solicitudes (id_estudiante = token user id)
 // - other roles (e.g. 2 staff, 3 coordinador): can list all (and optionally filter)
+// GET /api/solicitudes
+// Optional query params: id_estudiante, id_estado_solicitud, id_tipo_solicitud, id_personal_asignado, fecha_inicio, fecha_fin, q, view=lite|full, limit, offset
 router.get('/', requireAuth, async (req, res) => {
   try {
     const { from, to } = parsePagination(req.query);
@@ -241,6 +243,13 @@ router.get('/', requireAuth, async (req, res) => {
     const id_estado_solicitud = parseIntParam(req.query.id_estado_solicitud, 'id_estado_solicitud');
     const id_tipo_solicitud = parseIntParam(req.query.id_tipo_solicitud, 'id_tipo_solicitud');
 
+    // === NUEVO: CAPTURAMOS TUS NUEVOS FILTROS ===
+    const id_personal_asignado = parseIntParam(req.query.id_personal_asignado, 'id_personal_asignado');
+    const fecha_inicio = req.query.fecha_inicio;
+    const fecha_fin = req.query.fecha_fin;
+    const q = req.query.q;
+    // ============================================
+
     const view = String(req.query.view ?? 'full').toLowerCase();
     const selectClause = view === 'lite' ? SOLICITUD_SELECT_LITE : SOLICITUD_SELECT_FULL;
 
@@ -250,14 +259,47 @@ router.get('/', requireAuth, async (req, res) => {
       .order('fecha_creacion', { ascending: false })
       .range(from, to);
 
+    // Permisos por rol
     if (roleId === 1) {
-      // Students can only view their own solicitudes, regardless of query.
+      // Students can only view their own solicitudes
       query = query.eq('id_estudiante', userId);
     } else {
       if (id_estudiante !== undefined) query = query.eq('id_estudiante', id_estudiante);
     }
+
+    // Filtros originales
     if (id_estado_solicitud !== undefined) query = query.eq('id_estado_solicitud', id_estado_solicitud);
     if (id_tipo_solicitud !== undefined) query = query.eq('id_tipo_solicitud', id_tipo_solicitud);
+
+    // === NUEVO: APLICAMOS LOS FILTROS A LA BD ===
+    
+    // 1. Filtro por administrador asignado
+    if (id_personal_asignado !== undefined) {
+      query = query.eq('id_personal_asignado', id_personal_asignado);
+    }
+
+    // 2. Filtros por rango de fechas
+    if (fecha_inicio) {
+      query = query.gte('fecha_creacion', fecha_inicio); // gte = Greater Than or Equal
+    }
+    if (fecha_fin) {
+      query = query.lte('fecha_creacion', fecha_fin); // lte = Less Than or Equal
+    }
+
+    // 3. Filtro de Búsqueda de texto (q)
+    if (q && q.trim() !== '') {
+      const term = q.trim();
+      const numTerm = parseInt(term, 10);
+      
+      if (!isNaN(numTerm)) {
+        // Si el usuario escribe un número, buscamos por ID de la solicitud
+        query = query.eq('id_solicitud', numTerm);
+      } else {
+        // Si escribe texto, buscamos coincidencias en el título de la solicitud
+        query = query.ilike('titulo', `%${term}%`);
+      }
+    }
+    // ============================================
 
     const { data, error, count } = await query;
     if (error) throw error;
