@@ -349,11 +349,13 @@ const PanelSolicitudesAdmin = () => {
                 ))}
             </div>
             {!loading && !error && solicitudes.length > 0 && (
-                <SolicitudAdminTabla solicitudes={solicitudes} />
+                <div className="hidden lg:block w-[90%]">
+                    <SolicitudAdminTabla solicitudes={solicitudes} />
+                </div>
             )}
 
             {/* Infinite scroll sentinel */}
-            <div ref={sentinelRef} className="h-10 w-full" />
+            <div ref={sentinelRef} className="h-4 w-full" style={{ clear: 'both' }} />
             {!loading && !error && loadingMore && (
                 <div className="w-[90%] text-center text-gray-500 py-3">Cargando más...</div>
             )}
