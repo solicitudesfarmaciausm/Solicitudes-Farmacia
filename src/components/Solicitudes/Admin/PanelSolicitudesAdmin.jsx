@@ -13,7 +13,7 @@ function usePageSize() {
         }
         window.addEventListener("resize", handleResize)
         return () => window.removeEventListener("resize", handleResize)
-    }, []);
+    },[]);
     return pageSize;
 }
 
@@ -39,11 +39,15 @@ const toAdminRow = (s, keySuffix = '') => {
         titulo: s.titulo,
         fecha: formatFecha(s.fecha_creacion),
         fechaIso: s.fecha_creacion,
+        /* GUARDAMOS LOS IDs PARA PODER FILTRAR CORRECTAMENTE */
+        id_estado: s.id_estado_solicitud, 
         estado: s.estado?.nombre ?? String(s.id_estado_solicitud ?? ''),
+        id_tipo: s.id_tipo_solicitud,
         tipo: s.tipo?.nombre ?? String(s.id_tipo_solicitud ?? ''),
+        id_asignado: s.id_personal_asignado,
+        asignadoA,
         estudiante,
         cedula,
-        asignadoA,
     }
 }
 
@@ -51,7 +55,7 @@ const PanelSolicitudesAdmin = () => {
     const PAGE_SIZE = usePageSize();
 
     const [solicitudes, setSolicitudes] = useState([])
-    const [loading, setLoading] = useState(true)
+    const[loading, setLoading] = useState(true)
     const [loadingMore, setLoadingMore] = useState(false)
     const [error, setError] = useState(null)
 
@@ -61,11 +65,16 @@ const PanelSolicitudesAdmin = () => {
     const sentinelRef = useRef(null)
 
     const [q, setQ] = useState('')
-    const [estado, setEstado] = useState('')
+    const[estado, setEstado] = useState('')
     const [tipo, setTipo] = useState('')
-    const [asignadoA, setAsignadoA] = useState('')
+    const[asignadoA, setAsignadoA] = useState('')
     const [fechaInicio, setFechaInicio] = useState('')
     const [fechaFin, setFechaFin] = useState('')
+
+    // ESTADOS PARA GUARDAR LAS OPCIONES DE LOS SELECTS CON SU ID Y NOMBRE
+    const [estadosDisponibles, setEstadosDisponibles] = useState([]);
+    const [tiposDisponibles, setTiposDisponibles] = useState([]);
+    const [asignadosDisponibles, setAsignadosDisponibles] = useState([]);
 
     const hayFiltrosActivos = q !== '' || estado !== '' || tipo !== '' || asignadoA !== '' || fechaInicio !== '' || fechaFin !== ''
 
@@ -78,38 +87,45 @@ const PanelSolicitudesAdmin = () => {
         setFechaFin('')
     }
 
-    // Preparamos los filtros para pasarlos al backend
+    // ACUMULAMOS LAS OPCIONES SEGÚN LO QUE CARGUE LA TABLA PARA QUE NO DESAPAREZCAN AL FILTRAR
+    useEffect(() => {
+        if (!solicitudes.length) return;
+
+        setEstadosDisponibles(prev => {
+            const map = new Map(prev.map(e => [e.id, e]));
+            solicitudes.forEach(s => { if (s.id_estado && s.estado) map.set(s.id_estado, { id: s.id_estado, nombre: s.estado }); });
+            return Array.from(map.values());
+        });
+
+        setTiposDisponibles(prev => {
+            const map = new Map(prev.map(e => [e.id, e]));
+            solicitudes.forEach(s => { if (s.id_tipo && s.tipo) map.set(s.id_tipo, { id: s.id_tipo, nombre: s.tipo }); });
+            return Array.from(map.values());
+        });
+
+        setAsignadosDisponibles(prev => {
+            const map = new Map(prev.map(e => [e.id, e]));
+            solicitudes.forEach(s => { 
+                if (s.id_asignado) map.set(s.id_asignado, { id: s.id_asignado, nombre: s.asignadoA }); 
+            });
+            return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+        });
+    }, [solicitudes]);
+
+    // PREPARAMOS LOS FILTROS PARA EL BACKEND (AQUÍ FORZAMOS EL Number() PARA EVITAR EL ERROR)
     const apiFilters = useMemo(() => ({
         view: 'full',
         limit: PAGE_SIZE,
         offset,
-        ...(estado ? { id_estado_solicitud: estado } : {}),
-        ...(tipo ? { id_tipo_solicitud: tipo } : {}),
-        ...(asignadoA ? { id_personal_asignado: asignadoA } : {}),
+        ...(estado ? { id_estado_solicitud: Number(estado) } : {}),
+        ...(tipo ? { id_tipo_solicitud: Number(tipo) } : {}),
+        ...(asignadoA ? { id_personal_asignado: Number(asignadoA) } : {}),
         ...(q ? { q } : {}),
         ...(fechaInicio ? { fecha_inicio: fechaInicio } : {}),
         ...(fechaFin ? { fecha_fin: fechaFin } : {}),
     }), [PAGE_SIZE, offset, estado, tipo, asignadoA, q, fechaInicio, fechaFin]);
 
-    // Estados para los selects – los valores de las opciones deben ser los ID (no nombres, si tu backend espera ids)
-    const estadosDisponibles = useMemo(() => {
-        const vals = Array.from(new Set(solicitudes.map(s => s.estado).filter(Boolean)));
-        return vals;
-    }, [solicitudes]);
-    const tiposDisponibles = useMemo(() => {
-        const vals = Array.from(new Set(solicitudes.map(s => s.tipo).filter(Boolean)));
-        return vals;
-    }, [solicitudes]);
-    const asignadosDisponibles = useMemo(() => {
-        const opciones = Array.from(new Set(solicitudes.map(s => s.asignadoA).filter(Boolean)))
-        return opciones.sort((a, b) => {
-            if (a === 'Sin asignar') return -1;
-            if (b === 'Sin asignar') return 1;
-            return a.localeCompare(b);
-        });
-    }, [solicitudes]);
-
-    // Nueva carga: cada vez que filtros O PAGE_SIZE cambian, reinicia paginación y pide desde 0
+    // Nueva carga
     useEffect(() => {
         let cancelled = false;
         async function loadInitial() {
@@ -122,10 +138,10 @@ const PanelSolicitudesAdmin = () => {
                 const params = { ...apiFilters, offset: 0 }
                 const data = await listSolicitudes(params)
                 if (cancelled) return;
-                const rows = (data ?? []).map((s, idx) => toAdminRow(s, `-0-${idx}`))
+                const rows = (data ??[]).map((s, idx) => toAdminRow(s, `-0-${idx}`))
                 setSolicitudes(rows)
                 setOffset(PAGE_SIZE)
-                setHasMore((data ?? []).length === PAGE_SIZE)
+                setHasMore((data ??[]).length === PAGE_SIZE)
             } catch (e) {
                 if (!cancelled) setError(e?.message ?? 'Error cargando solicitudes')
             } finally {
@@ -134,18 +150,9 @@ const PanelSolicitudesAdmin = () => {
         }
         loadInitial();
         return () => { cancelled = true }
-    // PAGE_SIZE está incluido, así en móvil/escritorio se recarga la paginación
-    }, [estado, tipo, asignadoA, q, fechaInicio, fechaFin, PAGE_SIZE])
+    },[estado, tipo, asignadoA, q, fechaInicio, fechaFin, PAGE_SIZE])
 
-    useEffect(() => {
-    const handleTouch = (e) => {
-        console.log("Elemento tocado:", e.target);
-    };
-    window.addEventListener('touchstart', handleTouch);
-    return () => window.removeEventListener('touchstart', handleTouch);
-}, []);
-
-    // Infinite scroll: carga más manteniendo filtros activos
+    // Infinite scroll
     useEffect(() => {
         const el = sentinelRef.current
         if (!el) return
@@ -158,10 +165,10 @@ const PanelSolicitudesAdmin = () => {
                     const params = { ...apiFilters, offset }
                     listSolicitudes(params)
                         .then((data) => {
-                            const rows = (data ?? []).map((s, idx) => toAdminRow(s, `-${offset}-${idx}`))
+                            const rows = (data ??[]).map((s, idx) => toAdminRow(s, `-${offset}-${idx}`))
                             setSolicitudes((prev) => [...prev, ...rows])
                             setOffset(offset + PAGE_SIZE)
-                            setHasMore((data ?? []).length === PAGE_SIZE)
+                            setHasMore((data ??[]).length === PAGE_SIZE)
                         })
                         .catch((e) => {
                             setError(e?.message ?? 'Error cargando solicitudes')
@@ -173,20 +180,19 @@ const PanelSolicitudesAdmin = () => {
         )
         obs.observe(el)
         return () => obs.disconnect()
-    }, [offset, hasMore, loading, loadingMore, error, apiFilters, PAGE_SIZE])
+    },[offset, hasMore, loading, loadingMore, error, apiFilters, PAGE_SIZE])
 
-    // El "Download" toma todas las solicitudes cargadas actualmente (ya filtradas por el backend)
     const handleDownloadReport = () => {
         if (!solicitudes.length) {
             alert("No hay datos para exportar");
             return;
         }
 
-        const headers = ["ID", "Título", "Fecha", "Estado", "Tipo", "Estudiante", "Cédula", "Asignado A"];
+        const headers =["ID", "Título", "Fecha", "Estado", "Tipo", "Estudiante", "Cédula", "Asignado A"];
         const csvRows = [headers.join(",")];
 
         solicitudes.forEach(row => {
-            const values = [
+            const values =[
                 row.id,
                 `"${(row.titulo || "").replace(/"/g, '""')}"`,
                 `"${(row.fecha || "").replace(/"/g, '""')}"`,
@@ -212,9 +218,7 @@ const PanelSolicitudesAdmin = () => {
     };
 
     return (
-        
-<div className="flex flex-col items-center w-full"> 
-
+        <div className="flex flex-col items-center w-full"> 
             <div className="w-[90%] justify-between items-center sm:flex">
                 <h1 className="text-3xl sm:text-4xl sm:font-bold text-center my-3">
                     Panel Administrativo de Solicitudes
@@ -248,7 +252,7 @@ const PanelSolicitudesAdmin = () => {
                 >
                     <option value="">Estado (Todos)</option>
                     {estadosDisponibles.map((e) => (
-                        <option key={e} value={e}>{e}</option>
+                        <option key={e.id} value={e.id}>{e.nombre}</option>
                     ))}
                 </select>
 
@@ -259,7 +263,7 @@ const PanelSolicitudesAdmin = () => {
                 >
                     <option value="">Tipo (Todos)</option>
                     {tiposDisponibles.map((t) => (
-                        <option key={t} value={t}>{t}</option>
+                        <option key={t.id} value={t.id}>{t.nombre}</option>
                     ))}
                 </select>
 
@@ -270,7 +274,7 @@ const PanelSolicitudesAdmin = () => {
                 >
                     <option value="">Asignado a (Todos)</option>
                     {asignadosDisponibles.map((a) => (
-                        <option key={a} value={a}>{a}</option>
+                        <option key={a.id} value={a.id}>{a.nombre}</option>
                     ))}
                 </select>
 
@@ -304,14 +308,11 @@ const PanelSolicitudesAdmin = () => {
 
             {loading && (
                 <>
-                    {/* Mobile: compact card-like skeletons */}
                     <div className="w-[90%] flex flex-col gap-3 lg:hidden">
                         {Array.from({ length: 3 }).map((_, idx) => (
                             <SolicitudAdminCard key={idx} loading />
                         ))}
                     </div>
-
-                    {/* Desktop: table-shaped skeleton matching the real table */}
                     <table className="hidden lg:table w-[90%]">
                         <thead>
                             <tr>
@@ -364,13 +365,11 @@ const PanelSolicitudesAdmin = () => {
                 </div>
             )}
 
-            {/* Infinite scroll sentinel */}
             <div ref={sentinelRef} style={{ height: '10px', marginTop: '-10px' }} />
             {!loading && !error && loadingMore && (
                 <div className="w-[90%] text-center text-gray-500 py-3">Cargando más...</div>
             )}
-
-    </div>
+        </div>
     )
 }
 export default PanelSolicitudesAdmin
