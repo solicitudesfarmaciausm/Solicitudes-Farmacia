@@ -91,13 +91,13 @@ const initials = getUserInitials(user);
                 </div>
 
                 {/* --- SECCIÓN NOTIFICACIONES CORREGIDA --- */}
-                <div className="flex-none mx-2 dropdown dropdown-end">
+                <div className="relative" tabIndex={0} onBlur={() => setTimeout(() => setShowNotifs(false), 200)}>
                     <div 
                         tabIndex={0} 
                         role="button" 
                         className="btn btn-ghost btn-circle relative"
                         onClick={() => setShowNotifs(!showNotifs)}
-                        onBlur={() => setTimeout(() => setShowNotifs(false), 200)}
+                        
                     >
                         {noLeidas > 0 ? (
                             <>
