@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { IoSearchOutline, IoDownloadOutline } from "react-icons/io5"
 import SolicitudAdminCard from "./SolicitudAdminCard"
 import SolicitudAdminTabla from "./SolicitudAdminTabla"
-
+import { getUser } from '../../../auth/session.js'
 import { listSolicitudes } from '../../../api/solicitudes.js'
 
 function usePageSize() {
@@ -53,7 +53,7 @@ const toAdminRow = (s, keySuffix = '') => {
 
 const PanelSolicitudesAdmin = () => {
     const PAGE_SIZE = usePageSize();
-
+    const currentUser = getUser()
     const [solicitudes, setSolicitudes] = useState([])
     const[loading, setLoading] = useState(true)
     const [loadingMore, setLoadingMore] = useState(false)
@@ -282,17 +282,19 @@ const apiFilters = useMemo(() => {
                         <option key={t.id} value={t.id}>{t.nombre}</option>
                     ))}
                 </select>
-
-                <select
-                    className="select rounded-2xl w-full sm:w-auto cursor-pointer"
-                    value={asignadoA}
-                    onChange={(e) => setAsignadoA(e.target.value)}
-                >
-                    <option value="">Asignado a (Todos)</option>
-                    {asignadosDisponibles.map((a) => (
-                        <option key={a.id} value={a.id}>{a.nombre}</option>
-                    ))}
-                </select>
+                {currentUser?.id_rol==3 && (
+                    <select
+                        className="select rounded-2xl w-full sm:w-auto cursor-pointer"
+                        value={asignadoA}
+                        onChange={(e) => setAsignadoA(e.target.value)}
+                    >
+                        <option value="">Asignado a (Todos)</option>
+                        {asignadosDisponibles.map((a) => (
+                            <option key={a.id} value={a.id}>{a.nombre}</option>
+                        ))}
+                    </select>
+                )
+                }
 
                 <div className="flex flex-col sm:flex-row gap-2 items-center bg-gray-50 p-2 rounded-2xl border border-gray-200">
                     <span className="text-sm text-gray-500 font-medium px-2">Desde:</span>
