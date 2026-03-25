@@ -82,9 +82,11 @@ const PanelSolicitudesAdmin = () => {
         setQ('')
         setEstado('')
         setTipo('')
-        setAsignadoA('')
         setFechaInicio('')
         setFechaFin('')
+        if (currentUser?.id_rol === 3) {
+            setAsignadoA('')
+        }
     }
 
     // ACUMULAMOS LAS OPCIONES SEGÚN LO QUE CARGUE LA TABLA PARA QUE NO DESAPAREZCAN AL FILTRAR
@@ -122,6 +124,13 @@ const apiFilters = useMemo(() => {
             ...(asignadoA ? { id_personal_asignado: Number(asignadoA) } : {}),
             ...(q ? { q } : {}),
         };
+            if (currentUser?.id_rol === 2) {
+            // Si es Rol 2, forzamos que solo vea lo que tiene asignado
+            filters.id_personal_asignado = currentUser.id_usuario;
+        } else if (asignadoA) {
+            // Si es Rol 3 (o cualquier otro) y seleccionó a alguien en el select
+            filters.id_personal_asignado = Number(asignadoA);
+        }
 
         if (fechaInicio) {
             // Posibles variables que tu backend podría estar esperando
