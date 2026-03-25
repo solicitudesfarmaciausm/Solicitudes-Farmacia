@@ -79,7 +79,7 @@ const Navbar = () => {
        return (
         <>
             {/* Nota: He cambiado h-5 a h-16 porque h-5 (20px) es muy poco para un navbar */}
-            <div className="navbar bg-blue-950 text-white shadow-sm sticky z-10 h-16" >
+            <div className="navbar bg-blue-950 text-white shadow-sm sticky z-50 h-16" >
                 <div className="flex-none mx-4">
                     <Link to="/solicitudes" className="hover:opacity-80 transition-opacity">
                         <CiPill className="text-white" size={"1.5em"}/>
@@ -107,7 +107,7 @@ const Navbar = () => {
                     {/* CORRECCIÓN AQUÍ: */}
                     <ul
                         tabIndex={0}
-                        className="dropdown-content menu bg-base-100 rounded-box flex flex-col flex-nowrap z-[1] w-80 p-2 shadow-xl border border-gray-200 text-gray-800 max-h-[70vh] overflow-y-auto mt-4"
+className="dropdown-content menu bg-base-100 rounded-box flex flex-col flex-nowrap z-[1] w-80 p-2 shadow-xl border border-gray-200 text-gray-800 max-h-[70vh] overflow-y-auto mt-4 pointer-events-none focus-within:pointer-events-auto invisible focus-within:visible
                     >
                         <li className="menu-title flex flex-row justify-between items-center py-2 px-4 bg-gray-100/50 rounded-t-box border-b border-gray-200 shrink-0 sticky top-0 z-10 backdrop-blur-sm">
                             <span className="font-bold text-gray-700">Notificaciones</span>
