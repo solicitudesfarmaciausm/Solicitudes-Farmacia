@@ -137,6 +137,14 @@ const PanelSolicitudesAdmin = () => {
     // PAGE_SIZE está incluido, así en móvil/escritorio se recarga la paginación
     }, [estado, tipo, asignadoA, q, fechaInicio, fechaFin, PAGE_SIZE])
 
+    useEffect(() => {
+    const handleTouch = (e) => {
+        console.log("Elemento tocado:", e.target);
+    };
+    window.addEventListener('touchstart', handleTouch);
+    return () => window.removeEventListener('touchstart', handleTouch);
+}, []);
+
     // Infinite scroll: carga más manteniendo filtros activos
     useEffect(() => {
         const el = sentinelRef.current
