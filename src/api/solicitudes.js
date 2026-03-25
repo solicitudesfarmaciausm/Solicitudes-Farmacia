@@ -49,6 +49,7 @@ export function listSolicitudes({
   view = 'full',
   limit = 50,
   offset = 0,
+  ...rest
 } = {}) {
   const qs = buildQuery({
     id_estudiante,
@@ -57,6 +58,7 @@ export function listSolicitudes({
     view,
     limit,
     offset,
+    ...rest
   });
   return apiRequest(`/api/solicitudes${qs}`);
 }
