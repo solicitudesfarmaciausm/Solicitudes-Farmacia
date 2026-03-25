@@ -231,6 +231,9 @@ router.post('/', requireAuth, async (req, res) => {
 // Optional query params: id_estudiante, id_estado_solicitud, id_tipo_solicitud, id_personal_asignado, fecha_inicio, fecha_fin, q, view=lite|full, limit, offset
 router.get('/', requireAuth, async (req, res) => {
   try {
+    // --- LOG PARA DEBUGEAR EN TU TERMINAL DEL BACKEND ---
+    console.log("🔎 QUERY RECIBIDA EN BACKEND:", req.query);
+
     const { from, to } = parsePagination(req.query);
 
     const userId = Number(req.user?.id_usuario);
@@ -239,16 +242,17 @@ router.get('/', requireAuth, async (req, res) => {
       return res.status(401).json({ error: 'Invalid token payload' });
     }
 
-    const id_estudiante = parseIntParam(req.query.id_estudiante, 'id_estudiante');
-    const id_estado_solicitud = parseIntParam(req.query.id_estado_solicitud, 'id_estado_solicitud');
-    const id_tipo_solicitud = parseIntParam(req.query.id_tipo_solicitud, 'id_tipo_solicitud');
+    // Filtros originales usando tu util
+    const id_estudiante = req.query.id_estudiante ? parseInt(req.query.id_estudiante, 10) : undefined;
+    const id_estado_solicitud = req.query.id_estado_solicitud ? parseInt(req.query.id_estado_solicitud, 10) : undefined;
+    const id_tipo_solicitud = req.query.id_tipo_solicitud ? parseInt(req.query.id_tipo_solicitud, 10) : undefined;
 
-    // === NUEVO: CAPTURAMOS TUS NUEVOS FILTROS ===
-    const id_personal_asignado = parseIntParam(req.query.id_personal_asignado, 'id_personal_asignado');
-    const fecha_inicio = req.query.fecha_inicio;
-    const fecha_fin = req.query.fecha_fin;
+    // === FILTROS NUEVOS (Conversión manual segura) ===
+    const id_personal_asignado = req.query.id_personal_asignado ? parseInt(req.query.id_personal_asignado, 10) : undefined;
+    const fecha_inicio = req.query.fecha_inicio || req.query.fecha_creacion_gte;
+    const fecha_fin = req.query.fecha_fin || req.query.fecha_creacion_lte;
     const q = req.query.q;
-    // ============================================
+    // =================================================
 
     const view = String(req.query.view ?? 'full').toLowerCase();
     const selectClause = view === 'lite' ? SOLICITUD_SELECT_LITE : SOLICITUD_SELECT_FULL;
@@ -259,50 +263,56 @@ router.get('/', requireAuth, async (req, res) => {
       .order('fecha_creacion', { ascending: false })
       .range(from, to);
 
-    // Permisos por rol
+    // Permisos por rol (Estudiantes solo ven las suyas)
     if (roleId === 1) {
-      // Students can only view their own solicitudes
       query = query.eq('id_estudiante', userId);
     } else {
       if (id_estudiante !== undefined) query = query.eq('id_estudiante', id_estudiante);
     }
 
     // Filtros originales
-    if (id_estado_solicitud !== undefined) query = query.eq('id_estado_solicitud', id_estado_solicitud);
-    if (id_tipo_solicitud !== undefined) query = query.eq('id_tipo_solicitud', id_tipo_solicitud);
+    if (id_estado_solicitud !== undefined && !isNaN(id_estado_solicitud)) {
+      query = query.eq('id_estado_solicitud', id_estado_solicitud);
+    }
+    if (id_tipo_solicitud !== undefined && !isNaN(id_tipo_solicitud)) {
+      query = query.eq('id_tipo_solicitud', id_tipo_solicitud);
+    }
 
-    // === NUEVO: APLICAMOS LOS FILTROS A LA BD ===
+    // === APLICACIÓN DE LOS FILTROS NUEVOS ===
     
-    // 1. Filtro por administrador asignado
-    if (id_personal_asignado !== undefined) {
+    // 1. Asignado A
+    if (id_personal_asignado !== undefined && !isNaN(id_personal_asignado)) {
       query = query.eq('id_personal_asignado', id_personal_asignado);
     }
 
-    // 2. Filtros por rango de fechas
+    // 2. Fechas
     if (fecha_inicio) {
-      query = query.gte('fecha_creacion', fecha_inicio); // gte = Greater Than or Equal
+      query = query.gte('fecha_creacion', fecha_inicio); 
     }
     if (fecha_fin) {
-      query = query.lte('fecha_creacion', fecha_fin); // lte = Less Than or Equal
+      query = query.lte('fecha_creacion', fecha_fin); 
     }
 
-    // 3. Filtro de Búsqueda de texto (q)
+    // 3. Búsqueda (q)
     if (q && q.trim() !== '') {
       const term = q.trim();
       const numTerm = parseInt(term, 10);
       
       if (!isNaN(numTerm)) {
-        // Si el usuario escribe un número, buscamos por ID de la solicitud
+        // Si escribe un número, busca por ID de solicitud
         query = query.eq('id_solicitud', numTerm);
       } else {
-        // Si escribe texto, buscamos coincidencias en el título de la solicitud
+        // Si escribe texto, busca por título
         query = query.ilike('titulo', `%${term}%`);
       }
     }
-    // ============================================
+    // =================================================
 
     const { data, error, count } = await query;
-    if (error) throw error;
+    if (error) {
+      console.error("❌ Error de Supabase:", error);
+      throw error;
+    }
 
     setPaginationHeaders(res, { from, to, count });
     return res.status(200).json(data ?? []);
