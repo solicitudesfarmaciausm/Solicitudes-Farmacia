@@ -102,7 +102,7 @@ const initials = getUserInitials(user);
                         {noLeidas > 0 ? (
                             <>
                                 <MdOutlineNotificationsActive size={"1.5em"} className="text-yellow-400" />
-                                <span className="absolute top-0 right-0 rounded-full bg-red-600 text-white text-xs w-4 h-4 flex items-center justify-center">
+                                <span className="absolute right-0 mt-2 rounded-full bg-red-600 text-white text-xs w-4 h-4 flex items-center justify-center">
                                     {noLeidas > 9 ? '9+' : noLeidas}
                                 </span>
                             </>
