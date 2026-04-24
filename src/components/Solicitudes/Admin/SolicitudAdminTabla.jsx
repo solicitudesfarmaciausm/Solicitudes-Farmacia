@@ -21,6 +21,20 @@ const conseguirEstadoColor = (estado) => {
 
 const SolicitudAdminTabla = ({solicitudes}) => {
     const navigate = useNavigate();
+    const handleDelete = async (event, id) => {
+        event.stopPropagation(); // 1. EVITA QUE NAVEGUE AL DETALLE
+        
+        if (!window.confirm(`¿Estás seguro de eliminar la solicitud #${id}?`)) return;
+
+        try {
+            await deleteSolicitud(id);
+            alert("Solicitud eliminada con éxito");
+            window.location.reload(); // 2. RECARGA PARA ACTUALIZAR LA UI
+        } catch (err) {
+            console.error("Error al borrar:", err);
+            alert("No se pudo eliminar la solicitud");
+        }
+    };
     return (
         <table className="hidden lg:table w-[90%]">
             <thead>
