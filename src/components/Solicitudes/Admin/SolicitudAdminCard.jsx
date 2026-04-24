@@ -113,11 +113,15 @@ const handleDelete = async (event) => {
                     <p className="font-bold text-gray-500">{solicitud.fecha}</p>
                 </div>
             </div>
-                  <button
-        onClick={handleDelete}
-        className="btn btn-danger"
-        🗑️ Borrar
-      </button>
+            <div className="flex justify-end mt-2">
+                <button
+                    onClick={handleDelete}
+                    className="btn btn-danger"
+                    type="button"
+                >
+                    🗑️ Borrar
+                </button>
+            </div>
         </div>
     )
 }
