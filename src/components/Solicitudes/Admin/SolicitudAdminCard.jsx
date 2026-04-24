@@ -21,19 +21,38 @@ const conseguirEstadoColor = (estado) => {
 const SolicitudAdminCard = ({ solicitud, loading = false }) => {
     const navigate = useNavigate();
 const handleDelete = async () => {
-    if (!window.confirm("¿Estás seguro de borrar esta solicitud?")) return;
+    console.log("[handleDelete] Intentando borrar solicitud", solicitud.id_solicitud);
+    if (!window.confirm("¿Estás seguro de borrar esta solicitud?")) {
+      console.log("[handleDelete] Borrado cancelado por el usuario");
+      return;
+    }
     try {
-      const token = localStorage.getItem('token'); // o ajusta tu método de auth
-      await axios.delete(`/api/solicitudes/${solicitud.id_solicitud}`, {
+      const token = localStorage.getItem('token');
+      console.log("[handleDelete] Token a enviar:", token);
+
+      const response = await axios.delete(`/api/solicitudes/${solicitud.id_solicitud}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      // Notifica o actualiza la lista desde el padre, si lo deseas
+
+      console.log("[handleDelete] Respuesta exitosa al borrar:", response);
+
       if (onDelete) onDelete(solicitud.id_solicitud);
     } catch (err) {
-      const msg = err.response?.data?.error || "No se pudo borrar la solicitud";
-      alert(msg);
+      if (err.response) {
+        // La API respondió con error
+        console.error("[handleDelete] Error de API al borrar:", err.response.status, err.response.data);
+        alert(err.response.data?.error || "No se pudo borrar la solicitud");
+      } else if (err.request) {
+        // La petición fue enviada pero no hubo respuesta
+        console.error("[handleDelete] No hubo respuesta del servidor:", err.request);
+        alert("Error: no hubo respuesta del servidor");
+      } else {
+        // Otro error
+        console.error("[handleDelete] Error desconocido al borrar:", err.message, err);
+        alert("Error desconocido al borrar la solicitud");
+      }
     }
   };
     if (loading) {
@@ -96,7 +115,6 @@ const handleDelete = async () => {
                   <button
         onClick={handleDelete}
         className="btn btn-danger"
-        style={{ marginLeft: 8 }}>
         🗑️ Borrar
       </button>
         </div>
