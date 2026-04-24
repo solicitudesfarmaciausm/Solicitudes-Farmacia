@@ -107,7 +107,7 @@ const PanelSolicitudesAdmin = () => {
 
         try {
             setLoading(true);
-            await deleteSolicitudesMultiple(idsABorrar);
+await deleteSolicitudesMultiple({ ids: idsABorrar });
             alert(`${cantidad} solicitudes eliminadas correctamente.`);
             window.location.reload(); // Recarga para limpiar la lista
         } catch (err) {
