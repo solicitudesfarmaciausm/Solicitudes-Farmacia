@@ -782,4 +782,60 @@ router.patch('/:id_solicitud', requireAuth, async (req, res) => {
   }
 });
 
+// Middleware: sólo admin o superadmin (ajusta id_rol si fuera necesario)
+function requireAdmin(req, res, next) {
+  const rol = Number(req.user?.id_rol);
+  if (rol === 2 || rol === 3) return next(); // 2: admin, 3: superadmin
+  return res.status(403).json({ error: 'Acceso solo para administradores' });
+}
+
+// Eliminar una solicitud individual
+router.delete('/:id_solicitud', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const idSolicitud = parseIntParam(req.params.id_solicitud, 'id_solicitud');
+
+    // Puedes borrar en cascada comentarios, archivos, historial si lo deseas.
+    // await supabase.from('comentario').delete().eq('id_solicitud', idSolicitud);
+    // await supabase.from('archivo_adjunto').delete().eq('id_solicitud', idSolicitud);
+    // await supabase.from('historial_solicitud').delete().eq('id_solicitud', idSolicitud);
+
+    const { error } = await supabase
+      .from('solicitud')
+      .delete()
+      .eq('id_solicitud', idSolicitud);
+
+    if (error) throw error;
+    return res.status(204).send();
+  } catch (err) {
+    console.error('DELETE /api/solicitudes/:id_solicitud error:', err);
+    return res.status(err?.status ?? 500).json({ error: err?.message ?? 'Error al eliminar solicitud' });
+  }
+});
+
+// Eliminar solicitudes múltiples a la vez
+router.post('/borrar-multiples', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const ids = Array.isArray(req.body.ids) ? req.body.ids.map(Number) : [];
+    if (ids.length === 0) {
+      return res.status(400).json({ error: 'Proporcione un array de IDs' });
+    }
+
+    // Borra en cascada si lo deseas
+    // await supabase.from('comentario').delete().in('id_solicitud', ids);
+    // await supabase.from('archivo_adjunto').delete().in('id_solicitud', ids);
+    // await supabase.from('historial_solicitud').delete().in('id_solicitud', ids);
+
+    const { error } = await supabase
+      .from('solicitud')
+      .delete()
+      .in('id_solicitud', ids);
+
+    if (error) throw error;
+    return res.status(204).send();
+  } catch (err) {
+    console.error('POST /api/solicitudes/borrar-multiples error:', err);
+    return res.status(err?.status ?? 500).json({ error: err?.message ?? 'Error al borrar solicitudes' });
+  }
+});
+
 export default router;
