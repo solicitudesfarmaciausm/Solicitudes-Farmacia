@@ -32,6 +32,7 @@ const SolicitudAdminCard = ({ solicitud, loading = false, onDelete }) => {
             console.log("[handleDelete] Borrada con éxito");
             if (onDelete) onDelete(idActual);
             alert("Solicitud eliminada correctamente");
+            window.location.reload();
         } catch (err) {
             const msg = err?.payload?.error || err?.message || "No se pudo borrar la solicitud";
             console.error("[handleDelete] Error:", msg);
