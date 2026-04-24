@@ -100,4 +100,6 @@ export function createSolicitudComentario(id_solicitud, comentario) {
     body: { comentario },
   });
 }
-
+export function deleteSolicitud(id_solicitud) {
+  return apiRequest(`/api/solicitudes/${id_solicitud}`, { method: 'DELETE' });
+}
