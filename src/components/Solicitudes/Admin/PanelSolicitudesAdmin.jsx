@@ -3,11 +3,6 @@ import { IoSearchOutline, IoDownloadOutline } from "react-icons/io5"
 import SolicitudAdminCard from "./SolicitudAdminCard"
 import SolicitudAdminTabla from "./SolicitudAdminTabla"
 import { getUser } from '../../../auth/session.js'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { IoSearchOutline, IoDownloadOutline } from "react-icons/io5"
-import SolicitudAdminCard from "./SolicitudAdminCard"
-import SolicitudAdminTabla from "./SolicitudAdminTabla"
-import { getUser } from '../../../auth/session.js'
 import { listSolicitudes, deleteSolicitudesMultiple } from '../../../api/solicitudes.js'
 
 function usePageSize() {
