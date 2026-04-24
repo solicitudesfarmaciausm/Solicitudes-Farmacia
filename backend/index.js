@@ -17,7 +17,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const corsOptions = {
   origin: process.env.FRONTEND_URL, // Pon tu URL de Vercel aquí
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 };
 // Middleware
 app.use(cors(corsOptions)); // Allow frontend to talk to backend
