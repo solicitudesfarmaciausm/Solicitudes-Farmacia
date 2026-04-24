@@ -78,6 +78,12 @@ const SolicitudAdminCard = ({ solicitud, loading = false }) => {
                     <p className="font-bold text-gray-500">{solicitud.fecha}</p>
                 </div>
             </div>
+                  <button
+        onClick={handleDelete}
+        className="btn btn-danger"
+        style={{ marginLeft: 8 }}>
+        🗑️ Borrar
+      </button>
         </div>
     )
 }
