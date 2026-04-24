@@ -32,11 +32,9 @@ const handleDelete = async (event) => {
       const token = localStorage.getItem('token');
       console.log("[handleDelete] Token a enviar:", token);
 
-      const response = await axios.delete(`/api/solicitudes/${solicitud.id_solicitud}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await axios.delete(`/api/solicitudes/${solicitud.id}`, {
+  headers: { Authorization: `Bearer ${token}` }
+});
 
       console.log("[handleDelete] Respuesta exitosa al borrar:", response);
 
