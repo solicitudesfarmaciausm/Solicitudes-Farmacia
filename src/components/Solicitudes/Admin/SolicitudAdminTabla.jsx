@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router"
 import { FaTrashAlt } from "react-icons/fa"
+import { deleteSolicitud } from "../../../api/solicitudes";
 const conseguirEstadoColor = (estado) => {
     const normalizado = (estado ?? "").toString().trim().toLowerCase()
 
@@ -54,7 +55,7 @@ const SolicitudAdminTabla = ({solicitudes}) => {
                         <td className="text-center" onClick={(e) => e.stopPropagation()}>
                             <button 
                                 onClick={(e) => handleDelete(e, solicitud.id)}
-                                className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors cursor-pointer"
                                 title="Eliminar solicitud"
                             >
                                 <FaTrashAlt size="1.1em" /> {/* O usa 🗑️ */}
