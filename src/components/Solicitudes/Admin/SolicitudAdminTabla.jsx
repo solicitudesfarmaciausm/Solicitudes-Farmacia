@@ -57,12 +57,12 @@ const SolicitudAdminTabla = ({solicitudes}) => {
                         <td>{solicitud.estudiante}</td>
                         <td>V-{solicitud.cedula}</td>
                         <td>{solicitud.titulo}</td>
-                        <td>
-                            <div className={`badge badge-soft ${conseguirEstadoColor(solicitud.estado)} border`}>
-                                
-                                {solicitud.estado}
-                            </div>
-                        </td>
+<td>
+    {/* Agregamos w-max para que la cápsula se ajuste al contenido y px-4 para mejor padding */}
+    <div className={`badge badge-soft ${conseguirEstadoColor(solicitud.estado)} border w-max px-3 py-3`}>
+        {solicitud.estado}
+    </div>
+</td>
                         <td>{solicitud.tipo}</td>
                         <td>{solicitud.asignadoA}</td>
                         <td>{solicitud.fecha}</td>
