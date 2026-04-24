@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router"
 import axios from "axios";
+import { deleteSolicitud } from 'src/api/solicitudes
 
 const conseguirEstadoColor = (estado) => {
     const normalizado = (estado ?? "").toString().trim().toLowerCase()
@@ -32,29 +33,23 @@ const handleDelete = async (event) => {
       const token = localStorage.getItem('token');
       console.log("[handleDelete] Token a enviar:", token);
 
-      const response = await axios.delete(`/api/solicitudes/${solicitud.id}`, {
-  headers: { Authorization: `Bearer ${token}` }
-});
-
-      console.log("[handleDelete] Respuesta exitosa al borrar:", response);
-
-      if (onDelete) onDelete(solicitud.id_solicitud);
-    } catch (err) {
-      if (err.response) {
-        // La API respondió con error
-        console.error("[handleDelete] Error de API al borrar:", err.response.status, err.response.data);
-        alert(err.response.data?.error || "No se pudo borrar la solicitud");
-      } else if (err.request) {
-        // La petición fue enviada pero no hubo respuesta
-        console.error("[handleDelete] No hubo respuesta del servidor:", err.request);
-        alert("Error: no hubo respuesta del servidor");
-      } else {
-        // Otro error
-        console.error("[handleDelete] Error desconocido al borrar:", err.message, err);
-        alert("Error desconocido al borrar la solicitud");
-      }
-    }
-  };
+const handleDelete = async (event) => {
+  event.stopPropagation();
+  if (!window.confirm("¿Estás seguro de borrar esta solicitud?")) {
+    console.log("[handleDelete] Borrado cancelado por el usuario");
+    return;
+  }
+  try {
+    console.log("[handleDelete] Borrando solicitud con ID", solicitud.id);
+    await deleteSolicitud(solicitud.id);
+    console.log("[handleDelete] Solicitud borrada correctamente.");
+    if (onDelete) onDelete(solicitud.id);
+  } catch (err) {
+    const msg = err?.payload?.error || err?.message || "No se pudo borrar la solicitud";
+    console.error("[handleDelete] Error:", msg, err);
+    alert(msg);
+  }
+};
     if (loading) {
         return (
             <div className="card bg-white shadow-md rounded-2xl p-4">
