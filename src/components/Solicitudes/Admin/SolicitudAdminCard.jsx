@@ -20,7 +20,8 @@ const conseguirEstadoColor = (estado) => {
 
 const SolicitudAdminCard = ({ solicitud, loading = false }) => {
     const navigate = useNavigate();
-const handleDelete = async () => {
+const handleDelete = async (event) => {
+    event.stopPropagation();
     console.log("[handleDelete] Intentando borrar solicitud", solicitud.id_solicitud);
     if (!window.confirm("¿Estás seguro de borrar esta solicitud?")) {
       console.log("[handleDelete] Borrado cancelado por el usuario");
