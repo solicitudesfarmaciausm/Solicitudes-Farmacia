@@ -101,8 +101,12 @@ export function createSolicitudComentario(id_solicitud, comentario) {
   });
 }
 export function deleteSolicitud(id_solicitud) {
-  // Forzamos el uso de la constante API_BASE_URL para asegurar que no sea relativa
-  return apiRequest(`${API_BASE_URL}/api/solicitudes/${id_solicitud}`, { 
+  // Hardcoding de la URL de Render para descartar fallos de configuración
+  const BASE = "https://solicitudes-farmacia.onrender.com";
+  
+  console.log(`[DEBUG] Intentando borrar en: ${BASE}/api/solicitudes/${id_solicitud}`);
+  
+  return apiRequest(`${BASE}/api/solicitudes/${id_solicitud}`, { 
     method: 'DELETE' 
   });
 }
