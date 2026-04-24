@@ -90,33 +90,41 @@ const PanelSolicitudesAdmin = () => {
     }
 
 // --- LÓGICA DE BORRADO MASIVO ---
-    const handleBorrarFiltrados = async () => {
-        if (!solicitudes.length) {
-            alert("No hay solicitudes para borrar.");
-            return;
-        }
+const handleBorrarFiltrados = async () => {
+    if (!solicitudes.length) {
+        alert("No hay solicitudes para borrar.");
+        return;
+    }
 
-        const idsABorrar = solicitudes.map(s => s.id);
-        const cantidad = idsABorrar.length;
+    // MAPEO CORRECTO: Extraemos el valor de 'id' que asignamos en toAdminRow
+    const idsABorrar = solicitudes.map(s => s.id).filter(id => id !== undefined);
+    const cantidad = idsABorrar.length;
 
-        const mensaje = hayFiltrosActivos 
-            ? `¿Estás seguro de eliminar las ${cantidad} solicitudes que coinciden con los filtros actuales?`
-            : `¿Estás seguro de eliminar TODAS las solicitudes cargadas (${cantidad})?`;
+    if (cantidad === 0) {
+        alert("No se encontraron IDs válidos para borrar.");
+        return;
+    }
 
-        if (!window.confirm(mensaje + "\n\nEsta acción no se puede deshacer.")) return;
+    const mensaje = hayFiltrosActivos 
+        ? `¿Estás seguro de eliminar las ${cantidad} solicitudes filtradas?`
+        : `¿Estás seguro de eliminar TODAS las solicitudes (${cantidad})?`;
 
-        try {
-            setLoading(true);
-await deleteSolicitudesMultiple({ ids: idsABorrar });
-            alert(`${cantidad} solicitudes eliminadas correctamente.`);
-            window.location.reload(); // Recarga para limpiar la lista
-        } catch (err) {
-            console.error("Error en borrado masivo:", err);
-            alert("Error al intentar borrar: " + (err.response?.data?.error || err.message));
-        } finally {
-            setLoading(false);
-        }
-    };    
+    if (!window.confirm(mensaje + "\n\nEsta acción no se puede deshacer.")) return;
+
+    try {
+        setLoading(true);
+        // ENVIAR COMO OBJETO: { ids: [1, 2, 3] }
+        await deleteSolicitudesMultiple(idsABorrar); 
+        
+        alert(`${cantidad} solicitudes eliminadas correctamente.`);
+        window.location.reload(); 
+    } catch (err) {
+        console.error("Error en borrado masivo:", err);
+        alert("Error al intentar borrar: " + (err.response?.data?.error || err.message));
+    } finally {
+        setLoading(false);
+    }
+}; 
     // ACUMULAMOS LAS OPCIONES SEGÚN LO QUE CARGUE LA TABLA PARA QUE NO DESAPAREZCAN AL FILTRAR
     useEffect(() => {
         if (!solicitudes.length) return;
