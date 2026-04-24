@@ -8,7 +8,7 @@ import { IoSearchOutline, IoDownloadOutline } from "react-icons/io5"
 import SolicitudAdminCard from "./SolicitudAdminCard"
 import SolicitudAdminTabla from "./SolicitudAdminTabla"
 import { getUser } from '../../../auth/session.js'
-import { listSolicitudes } from '../../../api/solicitudes.js'
+import { listSolicitudes, deleteSolicitudesMultiple } from '../../../api/solicitudes.js'
 
 function usePageSize() {
     const [pageSize, setPageSize] = useState(window.innerWidth < 1024 ? 10 : 25);
