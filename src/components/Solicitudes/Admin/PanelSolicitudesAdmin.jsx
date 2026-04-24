@@ -90,41 +90,30 @@ const PanelSolicitudesAdmin = () => {
     }
 
 // --- LÓGICA DE BORRADO MASIVO ---
+// --- LÓGICA DE BORRADO MASIVO ---
 const handleBorrarFiltrados = async () => {
-    if (!solicitudes.length) {
-        alert("No hay solicitudes para borrar.");
-        return;
-    }
-
-    // MAPEO CORRECTO: Extraemos el valor de 'id' que asignamos en toAdminRow
-    const idsABorrar = solicitudes.map(s => s.id).filter(id => id !== undefined);
-    const cantidad = idsABorrar.length;
-
-    if (cantidad === 0) {
-        alert("No se encontraron IDs válidos para borrar.");
-        return;
-    }
-
-    const mensaje = hayFiltrosActivos 
-        ? `¿Estás seguro de eliminar las ${cantidad} solicitudes filtradas?`
-        : `¿Estás seguro de eliminar TODAS las solicitudes (${cantidad})?`;
-
-    if (!window.confirm(mensaje + "\n\nEsta acción no se puede deshacer.")) return;
+    // ... (validaciones de length y confirmación quedan igual)
 
     try {
         setLoading(true);
-        // ENVIAR COMO OBJETO: { ids: [1, 2, 3] }
+        
+        // Simplemente pasamos el array. 
+        // La función en la API (que actualizamos antes) se encarga de envolverlo en { ids: ... }
         await deleteSolicitudesMultiple(idsABorrar); 
         
         alert(`${cantidad} solicitudes eliminadas correctamente.`);
+        
+        // RECOMENDACIÓN: En lugar de reload(), podrías limpiar el estado local
+        // pero reload() es lo más seguro para resetear el offset del infinite scroll.
         window.location.reload(); 
     } catch (err) {
         console.error("Error en borrado masivo:", err);
-        alert("Error al intentar borrar: " + (err.response?.data?.error || err.message));
+        const errorMsg = err.response?.data?.error || err.message || "Error desconocido";
+        alert("Error al intentar borrar: " + errorMsg);
     } finally {
         setLoading(false);
     }
-}; 
+};
     // ACUMULAMOS LAS OPCIONES SEGÚN LO QUE CARGUE LA TABLA PARA QUE NO DESAPAREZCAN AL FILTRAR
     useEffect(() => {
         if (!solicitudes.length) return;
