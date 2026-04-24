@@ -112,11 +112,13 @@ export function deleteSolicitud(id_solicitud) {
 }
 // src/api/solicitudes.js
 
-export const deleteSolicitudesMultiple = async (idsArray) => {
-    // IMPORTANTE: Tu backend usa router.post('/borrar-multiples'...)
-    // En un POST, el segundo parámetro SÍ es el body directamente.
-    const response = await api.post('/solicitudes/borrar-multiples', { 
-        ids: idsArray 
-    });
-    return response.data;
-};
+
+export function deleteSolicitudesMultiple(idsArray) {
+  return apiRequest(`/api/solicitudes/borrar-multiples`, {
+    method: 'POST',
+    body: JSON.stringify({ ids: idsArray }),
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+}
