@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router";
 import axios from "axios";
-import { deleteSolicitud } from 'src/api/solicitudes'; // <--- Corregido: Comilla y punto y coma
+import { deleteSolicitud } from '../../../api/solicitudes'; // <--- Corregido: Comilla y punto y coma
 
 const conseguirEstadoColor = (estado) => {
     const normalizado = (estado ?? "").toString().trim().toLowerCase();
