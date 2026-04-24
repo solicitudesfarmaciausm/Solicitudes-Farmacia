@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router"
 import axios from "axios";
-import { deleteSolicitud } from 'src/api/solicitudes
+import { deleteSolicitud } from 'src/api/solicitudes'
 
 const conseguirEstadoColor = (estado) => {
     const normalizado = (estado ?? "").toString().trim().toLowerCase()
