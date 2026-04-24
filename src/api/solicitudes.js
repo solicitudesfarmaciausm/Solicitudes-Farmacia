@@ -110,23 +110,13 @@ export function deleteSolicitud(id_solicitud) {
     method: 'DELETE' 
   });
 }
-export async function deleteSolicitudesMultiple(ids) {
-  // Validamos que sea un array para evitar errores antes de la petición
-  if (!Array.isArray(ids) || ids.length === 0) {
-    throw new Error("Se requiere un array de IDs para eliminar.");
-  }
+// src/api/solicitudes.js
 
-  try {
-    // Usamos la instancia de axios o apiRequest que tengas configurada
-    // Se envía como POST según tu definición de Express
-    const response = await apiRequest(`/api/solicitudes/borrar-multiples`, {
-      method: 'POST',
-      body: JSON.stringify({ ids }), // Enviamos los IDs en el cuerpo
+export const deleteSolicitudesMultiple = async (idsArray) => {
+    // IMPORTANTE: Tu backend usa router.post('/borrar-multiples'...)
+    // En un POST, el segundo parámetro SÍ es el body directamente.
+    const response = await api.post('/solicitudes/borrar-multiples', { 
+        ids: idsArray 
     });
-
-    return response;
-  } catch (error) {
-    console.error("[API] Error en deleteSolicitudesMultiple:", error);
-    throw error;
-  }
-}
+    return response.data;
+};
