@@ -681,19 +681,30 @@ const apiFilters = useMemo(() => {
 
     return (
         <div className="flex flex-col items-center w-full"> 
-            <div className="w-[90%] justify-between items-center sm:flex">
-                <h1 className="text-3xl sm:text-4xl sm:font-bold text-center my-3">
-                    Panel Administrativo de Solicitudes
-                </h1>
-                <button
-                    className="btn btn-primary sm:btn-sm btn-outline rounded-2xl gap-2 mt-3 sm:mt-0"
-                    onClick={handleDownloadReport}
-                    title="Descargar reporte de solicitudes visibles (CSV)"
-                >
-                    <IoDownloadOutline size="1.2em" />
-                    Exportar Reporte
-                </button>
-            </div>
+<div className="w-[90%] justify-between items-center sm:flex">
+    <h1 className="text-3xl sm:text-4xl sm:font-bold text-center my-3">
+        Panel Administrativo de Solicitudes
+    </h1>
+    <div className="flex flex-wrap gap-2 justify-center">
+        <button
+            className="btn btn-error sm:btn-sm btn-outline rounded-2xl gap-2"
+            onClick={handleBorrarFiltrados}
+            disabled={solicitudes.length === 0 || loading}
+        >
+            <IoSearchOutline size="1.2em" className="rotate-45" />
+            Borrar Filtrados ({solicitudes.length})
+        </button>
+
+        <button
+            className="btn btn-primary sm:btn-sm btn-outline rounded-2xl gap-2"
+            onClick={handleDownloadReport}
+            title="Descargar reporte de solicitudes visibles (CSV)"
+        >
+            <IoDownloadOutline size="1.2em" />
+            Exportar Reporte
+        </button>
+    </div>
+</div>
 
             <label className="input rounded-full py-2 my-4 w-[90%] sm:w-[40%]">
                 <IoSearchOutline size="1.5em" />
