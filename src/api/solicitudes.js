@@ -101,5 +101,8 @@ export function createSolicitudComentario(id_solicitud, comentario) {
   });
 }
 export function deleteSolicitud(id_solicitud) {
-  return apiRequest(`/api/solicitudes/${id_solicitud}`, { method: 'DELETE' });
+  // Forzamos el uso de la constante API_BASE_URL para asegurar que no sea relativa
+  return apiRequest(`${API_BASE_URL}/api/solicitudes/${id_solicitud}`, { 
+    method: 'DELETE' 
+  });
 }
