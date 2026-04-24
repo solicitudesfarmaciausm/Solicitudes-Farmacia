@@ -20,7 +20,22 @@ const conseguirEstadoColor = (estado) => {
 
 const SolicitudAdminCard = ({ solicitud, loading = false }) => {
     const navigate = useNavigate();
-
+const handleDelete = async () => {
+    if (!window.confirm("¿Estás seguro de borrar esta solicitud?")) return;
+    try {
+      const token = localStorage.getItem('token'); // o ajusta tu método de auth
+      await axios.delete(`/api/solicitudes/${solicitud.id_solicitud}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      // Notifica o actualiza la lista desde el padre, si lo deseas
+      if (onDelete) onDelete(solicitud.id_solicitud);
+    } catch (err) {
+      const msg = err.response?.data?.error || "No se pudo borrar la solicitud";
+      alert(msg);
+    }
+  };
     if (loading) {
         return (
             <div className="card bg-white shadow-md rounded-2xl p-4">
